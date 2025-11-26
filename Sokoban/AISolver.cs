@@ -147,9 +147,9 @@ public class AISolver
     /// Az algoritmus minden nem célhelyen lévő ládához kiszámítja a legközelebbi
     /// cél Manhattan-távolságát, és ezek összegét adja vissza.
     /// 
-    /// Ha egy láda deadlock állapotban van (geometriailag elérhetetlen cél),
-    /// a heurisztika nagyon nagy értéket ad vissza, ami biztosítja,
-    /// hogy az ilyen állapotok ne kerüljenek a prioritási sor elejére.
+    /// FONTOS: A heurisztika NEM ellenőriz deadlockot - ezt a Solve metódus
+    /// külön kezeli a lépések szűrésénél. Ez biztosítja, hogy a heurisztika
+    /// admissible (megengedett) maradjon és ne zárjon ki túl sok állapotot.
     /// 
     /// A szakdolgozatban hivatkozható: heurisztika tervezés A* kereséshez,
     /// admissible heurisztika tulajdonságok.
@@ -188,13 +188,6 @@ public class AISolver
             }
             if (minDist != int.MaxValue)
                 totalDistance += minDist;
-
-            // Ha a láda deadlock állapotban van (nem célhelyen, és nem mozdítható célhelyre),
-            // adjunk nagyon nagy büntetést, hogy ez az állapot ne legyen előnyös
-            if (IsDeadlock(game, box.Row, box.Col))
-            {
-                return DeadlockPenalty;
-            }
         }
 
         return totalDistance;
