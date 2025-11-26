@@ -1,6 +1,7 @@
 # 📦 SOKOBAN - Kooperatív AI Puzzle Játék
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![.NET](https://img.shields.io/badge/.NET-8.0-blue.svg)](https://dotnet.microsoft.com/)
 
 Kooperatív Sokoban puzzle játék mesterséges intelligencia hint-rendszerrel.
 
@@ -15,80 +16,83 @@ A Sokoban egy klasszikus logikai játék, ahol a játékosnak ládákat kell a c
 - 🎮 **Klasszikus Sokoban**: Told a ládákat a célhelyekre
 - 🤖 **AI Asszisztens**: Intelligens hint-rendszer segít, ha elakadsz
 - ⚠️ **Deadlock Detektálás**: Figyelmeztet, ha zsákutcába kerültél
-- 📊 **Állapot Elemzés**: A játék folyamatosan elemzi a helyzetet
 - ↩️ **Undo Funkció**: Bármikor visszaléphetsz
-- 📱 **Reszponzív Design**: Működik asztali gépen és mobilon is
+- 📊 **Állapot Elemzés**: A játék folyamatosan elemzi a helyzetet
+- 🖥️ **Konzol Felület**: Tiszta, áttekinthető konzol UI
 
 ## 🚀 Indítás
 
-### Egyszerű Indítás
+### Követelmények
 
-Nyisd meg a `src/index.html` fájlt bármelyik modern böngészőben:
+- [.NET 8.0 SDK](https://dotnet.microsoft.com/download/dotnet/8.0) vagy újabb
+
+### Futtatás
 
 ```bash
-# Linux/Mac
-open src/index.html
+# Klónozás
+git clone https://github.com/Succny/PUZZLE.git
+cd PUZZLE
 
-# Windows
-start src/index.html
-
-# Vagy használj Live Server-t VS Code-ban
+# Futtatás
+dotnet run --project Sokoban
 ```
 
-### Helyi Szerver (opcionális)
+### Build
 
 ```bash
-# Python 3
-cd src
-python -m http.server 8000
+# Release build
+dotnet build -c Release
 
-# Node.js
-npx serve src
-
-# Majd nyisd meg: http://localhost:8000
+# Futtatható fájl létrehozása
+dotnet publish -c Release -r win-x64 --self-contained
 ```
 
 ## 🎮 Játékmenet
 
 ### Szabályok
-- Irányítsd a raktárost (🧑) a pályán
-- Told a ládákat (📦) a célhelyekre (🎯)
+- Irányítsd a raktárost (@) a pályán
+- Told a ládákat ([]) a célhelyekre (..)
 - Csak **tolni** lehet a ládákat, húzni nem
 - Egyszerre csak egy ládát lehet mozgatni
-- Ha minden láda célhelyen van (✅), nyertél!
+- Ha minden láda célhelyen van (▣▣), nyertél!
 
 ### Irányítás
-- ⬆️⬇️⬅️➡️ **Nyílbillentyűk** vagy **WASD**: Mozgás
-- **Z** vagy **Backspace**: Visszalépés (Undo)
-- **R**: Pálya újraindítása
+
+| Billentyű | Funkció |
+|-----------|---------|
+| ↑ ↓ ← → / WASD | Mozgás |
+| H | Részletes hint kérése |
+| N | Következő lépés megmutatása |
+| U / Backspace | Visszalépés (Undo) |
+| R | Pálya újraindítása |
+| 1-5 | Pálya választás |
+| Q / Esc | Kilépés |
 
 ## 🤖 AI Funkciók
 
 ### Hint Rendszer
-- **💡 Hint Kérése**: Állapot elemzés és stratégiai tanácsok
-- **👀 Következő lépés**: Vizuálisan kiemeli a javasolt irányt
+- **H - Részletes Hint**: Állapot elemzés, megoldhatóság ellenőrzése
+- **N - Következő lépés**: Megmutatja az optimális következő lépést
 
 ### AI Képességek
-- **Megoldó Algoritmus**: BFS/A* keresés az optimális megoldáshoz
+- **BFS/A* Megoldó Algoritmus**: Megtalálja az optimális megoldást
+- **Manhattan-távolság Heurisztika**: Hatékony keresés
 - **Deadlock Detektálás**: Felismeri a zsákutca helyzeteket
-- **Proaktív Segítség**: Ha elakadsz, felajánlja a segítséget
+- **Proaktív Segítség**: Stratégiai tanácsok
 
 ## 📁 Projekt Struktúra
 
 ```
 PUZZLE/
-├── src/
-│   ├── index.html          # Fő HTML oldal
-│   ├── css/
-│   │   └── style.css       # Stílusok
-│   └── js/
-│       ├── levels.js       # Pályák definíciói
-│       ├── sokoban.js      # Sokoban játék logika
-│       ├── ai-solver.js    # AI megoldó algoritmus
-│       ├── hint-system.js  # Hint rendszer
-│       └── game.js         # Játék vezérlő
-├── docs/
-│   └── CONCEPT.md          # Részletes koncepció
+├── Sokoban/
+│   ├── Program.cs          # Belépési pont
+│   ├── ConsoleUI.cs        # Konzol felhasználói felület
+│   ├── SokobanGame.cs      # Játék logika
+│   ├── AISolver.cs         # AI megoldó algoritmus
+│   ├── HintSystem.cs       # Hint rendszer
+│   ├── Levels.cs           # Pályák definíciói
+│   └── Sokoban.csproj      # Projekt fájl
+├── Sokoban.sln             # Solution fájl
 ├── README.md               # Ez a fájl
 └── .gitignore              # Git ignore szabályok
 ```
@@ -96,20 +100,15 @@ PUZZLE/
 ## 🧠 Technológiai Háttér
 
 ### Használt Technológiák
-- **HTML5**: Szemantikus markup
-- **CSS3**: Modern stílusok, animációk, Grid layout
-- **JavaScript (ES6+)**: Játék logika és AI
+- **C# 12**: Modern C# nyelvi funkciók
+- **.NET 8.0**: Cross-platform futtatókörnyezet
+- **Console Application**: Konzol alapú felület
 
 ### AI Algoritmusok
 - **BFS (Breadth-First Search)**: Megoldás keresése
 - **A* keresés**: Heurisztikus optimalizálás
 - **Manhattan-távolság**: Heurisztika a célállapottól való távolsághoz
 - **Deadlock detektálás**: Sarok és vonal deadlock felismerés
-
-## 📚 Dokumentáció
-
-Részletes dokumentáció a `docs/` mappában:
-- [CONCEPT.md](docs/CONCEPT.md) - Játék koncepció és tervezési dokumentum
 
 ## 🎓 Tudományos Háttér
 
