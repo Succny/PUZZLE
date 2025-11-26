@@ -1,10 +1,18 @@
-﻿namespace Sokoban;
+namespace Sokoban;
+
+// ============================================================================
+// UI LAYER / PREZENTÁCIÓS RÉTEG - BELÉPÉSI PONT
+// Ez a fájl az alkalmazás belépési pontja.
+// A szakdolgozatban hivatkozható: Alkalmazás indítás, UI réteg.
+// ============================================================================
 
 /// <summary>
+/// [UI Layer]
 /// SOKOBAN - Kooperatív AI Puzzle Játék
 /// BSc Szakdolgozat - Mesterséges Intelligencia és Ember Együttműködése
 /// 
-/// C# Console Application
+/// C# Console Application belépési pont.
+/// Inicializálja a konzol beállításokat és indítja a játék UI-t.
 /// </summary>
 class Program
 {

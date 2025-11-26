@@ -1,13 +1,24 @@
 namespace Sokoban;
 
+// ============================================================================
+// AI LAYER / MESTERSÉGES INTELLIGENCIA RÉTEG
+// Ez a fájl az AI megoldó algoritmust tartalmazza.
+// A szakdolgozatban hivatkozható: AI Solver réteg.
+// ============================================================================
+
 /// <summary>
-/// Lépés irány
+/// [AI Layer]
+/// Lépés irány reprezentáció az AI algoritmushoz.
 /// </summary>
 public class MoveDirection
 {
+    /// <summary>Sor irányú elmozdulás (-1: fel, 1: le, 0: nincs)</summary>
     public int DRow { get; }
+    /// <summary>Oszlop irányú elmozdulás (-1: bal, 1: jobb, 0: nincs)</summary>
     public int DCol { get; }
+    /// <summary>Magyar megnevezés</summary>
     public string Name { get; }
+    /// <summary>Nyíl karakter vizuális megjelenítéshez</summary>
     public string Arrow { get; }
 
     public MoveDirection(int dRow, int dCol, string name, string arrow)
@@ -27,35 +38,86 @@ public class MoveDirection
 }
 
 /// <summary>
-/// AI megoldó lépés
+/// [AI Layer]
+/// AI megoldó lépés - egy lépés adatait tartalmazza.
 /// </summary>
 public class SolverMove
 {
+    /// <summary>A lépés iránya</summary>
     public MoveDirection Direction { get; set; } = MoveDirection.Up;
+    /// <summary>Történt-e láda tolás a lépés során</summary>
     public bool Pushed { get; set; }
 }
 
 /// <summary>
-/// Megoldás eredménye
+/// [AI Layer]
+/// Megoldás eredménye - az AI keresés kimenetelét tartalmazza.
 /// </summary>
 public class SolutionResult
 {
+    /// <summary>Sikerült-e megoldást találni</summary>
     public bool Success { get; set; }
+    /// <summary>A megoldáshoz szükséges lépések listája</summary>
     public List<SolverMove> Moves { get; set; } = new();
+    /// <summary>A keresés során végrehajtott iterációk száma</summary>
     public int Iterations { get; set; }
+    /// <summary>Sikertelen keresés esetén az ok (pl. "timeout", "unsolvable")</summary>
     public string? Reason { get; set; }
 }
 
 /// <summary>
-/// AI Megoldó (BFS/A* algoritmus)
+/// [AI Layer]
+/// AI Megoldó algoritmus A* kereséssel és Manhattan-távolság heurisztikával.
+/// 
+/// A szakdolgozatban hivatkozható:
+/// - A* algoritmus implementáció Sokoban megoldásához
+/// - Manhattan-távolság heurisztika
+/// - Állapottér keresés visited halmazon
+/// - Deadlock állapotok szűrése a keresés során
+/// - Konfigurálható iteráció limit a futási idő korlátozásához
 /// </summary>
 public class AISolver
 {
-    private const int MaxIterations = 50000;
+    /// <summary>
+    /// Maximális iterációszám a keresés során.
+    /// A futási idő korlátozására szolgál, hogy elkerüljük a túl hosszú számításokat.
+    /// Alapértelmezett érték: 50000.
+    /// 
+    /// A szakdolgozatban hivatkozható: számítási komplexitás korlátozása.
+    /// </summary>
+    public int MaxIterations { get; set; } = 50000;
 
     /// <summary>
-    /// Manhattan-távolság heurisztika
+    /// Alapértelmezett konstruktor 50000-es MaxIterations értékkel.
     /// </summary>
+    public AISolver()
+    {
+    }
+
+    /// <summary>
+    /// Konstruktor egyedi MaxIterations értékkel.
+    /// </summary>
+    /// <param name="maxIterations">Maximális iterációszám (alapértelmezett: 50000)</param>
+    public AISolver(int maxIterations)
+    {
+        MaxIterations = maxIterations;
+    }
+
+    /// <summary>
+    /// Manhattan-távolság heurisztika számítása.
+    /// 
+    /// Az algoritmus minden nem célhelyen lévő ládához kiszámítja a legközelebbi
+    /// cél Manhattan-távolságát, és ezek összegét adja vissza.
+    /// 
+    /// Ha egy láda deadlock állapotban van (geometriailag elérhetetlen cél),
+    /// a heurisztika nagyon nagy értéket ad vissza, ami biztosítja,
+    /// hogy az ilyen állapotok ne kerüljenek a prioritási sor elejére.
+    /// 
+    /// A szakdolgozatban hivatkozható: heurisztika tervezés A* kereséshez,
+    /// admissible heurisztika tulajdonságok.
+    /// </summary>
+    /// <param name="game">Az aktuális játékállapot</param>
+    /// <returns>A heurisztika értéke (alacsonyabb = jobb)</returns>
     public int CalculateHeuristic(SokobanGame game)
     {
         int totalDistance = 0;
@@ -88,30 +150,55 @@ public class AISolver
             }
             if (minDist != int.MaxValue)
                 totalDistance += minDist;
+
+            // Ha a láda deadlock állapotban van (nem célhelyen, és nem mozdítható célhelyre),
+            // adjunk nagyon nagy büntetést, hogy ez az állapot ne legyen előnyös
+            if (IsDeadlock(game, box.Row, box.Col))
+            {
+                return int.MaxValue / 2; // Nagyon nagy érték, de nem overflow
+            }
         }
 
         return totalDistance;
     }
 
     /// <summary>
-    /// Deadlock ellenőrzés
+    /// Deadlock (zsákutca) ellenőrzés.
+    /// 
+    /// Ellenőrzi, hogy egy adott pozíción lévő láda deadlock állapotban van-e,
+    /// azaz geometriailag lehetetlen-e célhelyre mozgatni.
+    /// 
+    /// Delegálja a részletes ellenőrzést a SokobanGame osztály metódusaihoz,
+    /// amelyek sarok és fal-vonal deadlock-ot is kezelnek.
+    /// 
+    /// A szakdolgozatban hivatkozható: AI keresés optimalizálás deadlock felismeréssel.
     /// </summary>
+    /// <param name="game">Az aktuális játékállapot</param>
+    /// <param name="row">A láda sor pozíciója</param>
+    /// <param name="col">A láda oszlop pozíciója</param>
+    /// <returns>True, ha a láda deadlock állapotban van</returns>
     public bool IsDeadlock(SokobanGame game, int row, int col)
     {
-        if (game.IsGoal(row, col))
-            return false;
-
-        bool up = game.IsWall(row - 1, col);
-        bool down = game.IsWall(row + 1, col);
-        bool left = game.IsWall(row, col - 1);
-        bool right = game.IsWall(row, col + 1);
-
-        return (up && left) || (up && right) || (down && left) || (down && right);
+        // Használjuk a SokobanGame bővített deadlock ellenőrzését
+        return game.CheckDeadlock(row, col);
     }
 
     /// <summary>
-    /// Megoldás keresése BFS/A* algoritmussal
+    /// Megoldás keresése A* algoritmussal.
+    /// 
+    /// Az algoritmus prioritásos sorban tárolja a vizsgálandó állapotokat,
+    /// ahol a prioritás = eddigi lépések száma + heurisztika (f = g + h).
+    /// 
+    /// Optimalizációk:
+    /// - Visited halmaz a már vizsgált állapotok kiszűrésére
+    /// - Deadlock állapotok korai szűrése
+    /// - Konfigurálható iteráció limit
+    /// 
+    /// A szakdolgozatban hivatkozható: A* algoritmus implementáció,
+    /// állapottér keresés, prioritásos sor alkalmazása.
     /// </summary>
+    /// <param name="game">A kiinduló játékállapot</param>
+    /// <returns>A megoldás eredménye (siker/kudarc, lépések, iterációk)</returns>
     public SolutionResult Solve(SokobanGame game)
     {
         if (game.IsSolved())
@@ -189,8 +276,16 @@ public class AISolver
     }
 
     /// <summary>
-    /// Következő lépés megtalálása
+    /// Következő lépés megtalálása.
+    /// 
+    /// Megoldja a játékot és visszaadja az első lépést a megoldásból.
+    /// Hasznos a hint rendszer számára, hogy egy lépést javasoljon.
+    /// 
+    /// A szakdolgozatban hivatkozható: AI-alapú lépésjavaslat generálás,
+    /// ember-AI együttműködés a Sokoban megoldásában.
     /// </summary>
+    /// <param name="game">Az aktuális játékállapot</param>
+    /// <returns>A következő lépés adatai (irány, összes hátralévő lépés, tolások száma), vagy null ha nincs megoldás</returns>
     public (SolverMove? Move, int TotalMoves, int PushCount)? GetNextMove(SokobanGame game)
     {
         var solution = Solve(game);
@@ -206,7 +301,8 @@ public class AISolver
     }
 
     /// <summary>
-    /// Játék klónozása
+    /// Játék klónozása a keresés során.
+    /// Minden új állapot független másolat, hogy a keresés ne módosítsa az eredetit.
     /// </summary>
     private SokobanGame CloneGame(SokobanGame original)
     {

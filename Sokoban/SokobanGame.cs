@@ -1,26 +1,45 @@
 namespace Sokoban;
 
+// ============================================================================
+// CORE LAYER / JÁTÉKMOTOR RÉTEG
+// Ez a fájl a Sokoban játékmotor alapvető osztályait tartalmazza.
+// A szakdolgozatban hivatkozható: Core játéklogika réteg.
+// ============================================================================
+
 /// <summary>
-/// Mozgatás eredménye
+/// [Core Layer]
+/// Mozgatás eredménye - a játékos lépésének kimenetelét írja le.
 /// </summary>
 public class MoveResult
 {
+    /// <summary>Sikeres volt-e a lépés</summary>
     public bool Success { get; set; }
+    /// <summary>Történt-e láda tolás</summary>
     public bool Pushed { get; set; }
+    /// <summary>Megoldódott-e a pálya</summary>
     public bool Solved { get; set; }
+    /// <summary>Deadlock állapot keletkezett-e</summary>
     public bool Deadlock { get; set; }
+    /// <summary>A sikertelen lépés oka (pl. "wall", "blocked")</summary>
     public string? Reason { get; set; }
 }
 
 /// <summary>
-/// Játékállapot mentése undo-hoz
+/// [Core Layer]
+/// Játékállapot mentése undo funkcióhoz.
+/// Tárolja a térkép, játékos pozíció, és statisztikák pillanatképét.
 /// </summary>
 public class GameState
 {
+    /// <summary>A térkép másolata</summary>
     public char[,] Map { get; }
+    /// <summary>Játékos sor pozíciója</summary>
     public int PlayerRow { get; }
+    /// <summary>Játékos oszlop pozíciója</summary>
     public int PlayerCol { get; }
+    /// <summary>Aktuális lépésszám</summary>
     public int Moves { get; }
+    /// <summary>Aktuális tolásszám</summary>
     public int Pushes { get; }
 
     public GameState(char[,] map, int playerRow, int playerCol, int moves, int pushes)
@@ -37,7 +56,15 @@ public class GameState
 }
 
 /// <summary>
-/// Sokoban játék logika
+/// [Core Layer]
+/// Sokoban játék fő logikája.
+/// Felelős a játékállapot kezeléséért, mozgásokért, undo funkcióért és deadlock detektálásért.
+/// 
+/// A szakdolgozatban hivatkozható:
+/// - Játékállapot reprezentáció (2D char tömb)
+/// - Lépés validáció és végrehajtás
+/// - Undo stack kezelése (max ~1000 lépés)
+/// - Deadlock detektálás (sarok és fal-vonal deadlock)
 /// </summary>
 public class SokobanGame
 {
@@ -276,9 +303,19 @@ public class SokobanGame
     private void SaveState()
     {
         _history.Push(new GameState(_map, _playerRow, _playerCol, Moves, Pushes));
+        TrimHistory();
+    }
 
-        // Maximum 1000 lépés tárolása
-        if (_history.Count > 1000)
+    /// <summary>
+    /// Undo történet ritkítása a memória korlátozásához.
+    /// Maximum ~1000 lépés tárolása a visszalépési lehetőségek biztosításához.
+    /// 
+    /// A szakdolgozatban hivatkozható: undo stack memória-menedzsment.
+    /// </summary>
+    private void TrimHistory()
+    {
+        const int MaxHistorySize = 1000;
+        if (_history.Count > MaxHistorySize)
         {
             var tempList = _history.ToList();
             tempList.RemoveAt(tempList.Count - 1);
@@ -325,23 +362,158 @@ public class SokobanGame
     }
 
     /// <summary>
-    /// Deadlock (zsákutca) ellenőrzés
+    /// Deadlock (zsákutca) ellenőrzés.
+    /// Kombinálja a sarok és fal-vonal deadlock detektálást.
+    /// 
+    /// A szakdolgozatban hivatkozható: deadlock típusok elemzése Sokoban játékban.
     /// </summary>
+    /// <param name="boxRow">A láda sor pozíciója</param>
+    /// <param name="boxCol">A láda oszlop pozíciója</param>
+    /// <returns>True, ha a láda deadlock állapotban van</returns>
     public bool CheckDeadlock(int boxRow, int boxCol)
     {
         // Ha a láda célhelyen van, nem deadlock
         if (IsGoal(boxRow, boxCol))
             return false;
 
-        // Sarok deadlock: ha a láda sarokba szorult
+        // Sarok deadlock ellenőrzése
+        if (IsCornerDeadlock(boxRow, boxCol))
+            return true;
+
+        // Fal-vonal deadlock ellenőrzése
+        if (IsWallLineDeadlock(boxRow, boxCol))
+            return true;
+
+        return false;
+    }
+
+    /// <summary>
+    /// Sarok deadlock ellenőrzése.
+    /// Egy láda sarokba szorult, ha két szomszédos oldalon (pl. fel és bal) fal van,
+    /// és a láda nincs célhelyen.
+    /// 
+    /// A szakdolgozatban hivatkozható: klasszikus sarok-deadlock felismerés.
+    /// </summary>
+    /// <param name="boxRow">A láda sor pozíciója</param>
+    /// <param name="boxCol">A láda oszlop pozíciója</param>
+    /// <returns>True, ha a láda sarok-deadlock állapotban van</returns>
+    public bool IsCornerDeadlock(int boxRow, int boxCol)
+    {
         bool up = IsWall(boxRow - 1, boxCol);
         bool down = IsWall(boxRow + 1, boxCol);
         bool left = IsWall(boxRow, boxCol - 1);
         bool right = IsWall(boxRow, boxCol + 1);
 
-        // Sarok pozíciók
-        if ((up && left) || (up && right) || (down && left) || (down && right))
-            return true;
+        // Sarok pozíciók: két szomszédos oldalon fal
+        return (up && left) || (up && right) || (down && left) || (down && right);
+    }
+
+    /// <summary>
+    /// Fal-vonal deadlock ellenőrzése.
+    /// Ha egy láda olyan falvonal mentén áll (vízszintes vagy függőleges),
+    /// ahol a vonalon sehol nincs cél (Goal), akkor az deadlock.
+    /// 
+    /// A szakdolgozatban hivatkozható: fal-menti deadlock felismerés,
+    /// amely a sarok-deadlock kiterjesztése az egész falvonalra.
+    /// </summary>
+    /// <param name="boxRow">A láda sor pozíciója</param>
+    /// <param name="boxCol">A láda oszlop pozíciója</param>
+    /// <returns>True, ha a láda fal-vonal deadlock állapotban van</returns>
+    public bool IsWallLineDeadlock(int boxRow, int boxCol)
+    {
+        // Ellenőrizzük vízszintes fal-vonalat (fel vagy le irányban van fal)
+        bool upWall = IsWall(boxRow - 1, boxCol);
+        bool downWall = IsWall(boxRow + 1, boxCol);
+
+        if (upWall || downWall)
+        {
+            // Vizsgáljuk a vízszintes vonalat
+            if (IsWallLineDeadlockHorizontal(boxRow, boxCol, upWall ? -1 : 1))
+                return true;
+        }
+
+        // Ellenőrizzük függőleges fal-vonalat (bal vagy jobb irányban van fal)
+        bool leftWall = IsWall(boxRow, boxCol - 1);
+        bool rightWall = IsWall(boxRow, boxCol + 1);
+
+        if (leftWall || rightWall)
+        {
+            // Vizsgáljuk a függőleges vonalat
+            if (IsWallLineDeadlockVertical(boxRow, boxCol, leftWall ? -1 : 1))
+                return true;
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// Vízszintes fal-vonal deadlock segédfüggvény.
+    /// Ellenőrzi, hogy a láda vízszintes vonalán van-e cél.
+    /// </summary>
+    private bool IsWallLineDeadlockHorizontal(int boxRow, int boxCol, int wallDirection)
+    {
+        // Balra keresés
+        int leftEnd = boxCol;
+        while (leftEnd > 0 && !IsWall(boxRow, leftEnd - 1) && IsWall(boxRow + wallDirection, leftEnd - 1))
+        {
+            leftEnd--;
+        }
+        bool leftBlocked = IsWall(boxRow, leftEnd - 1) || IsWall(boxRow + wallDirection, leftEnd);
+
+        // Jobbra keresés
+        int rightEnd = boxCol;
+        while (rightEnd < Width - 1 && !IsWall(boxRow, rightEnd + 1) && IsWall(boxRow + wallDirection, rightEnd + 1))
+        {
+            rightEnd++;
+        }
+        bool rightBlocked = IsWall(boxRow, rightEnd + 1) || IsWall(boxRow + wallDirection, rightEnd);
+
+        // Ha mindkét végén blokkolva van, ellenőrizzük, van-e cél a vonalon
+        if (leftBlocked && rightBlocked)
+        {
+            for (int col = leftEnd; col <= rightEnd; col++)
+            {
+                if (IsGoal(boxRow, col))
+                    return false; // Van cél a vonalon, nem deadlock
+            }
+            return true; // Nincs cél a vonalon, deadlock
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// Függőleges fal-vonal deadlock segédfüggvény.
+    /// Ellenőrzi, hogy a láda függőleges vonalán van-e cél.
+    /// </summary>
+    private bool IsWallLineDeadlockVertical(int boxRow, int boxCol, int wallDirection)
+    {
+        // Felfelé keresés
+        int topEnd = boxRow;
+        while (topEnd > 0 && !IsWall(topEnd - 1, boxCol) && IsWall(topEnd - 1, boxCol + wallDirection))
+        {
+            topEnd--;
+        }
+        bool topBlocked = IsWall(topEnd - 1, boxCol) || IsWall(topEnd, boxCol + wallDirection);
+
+        // Lefelé keresés
+        int bottomEnd = boxRow;
+        while (bottomEnd < Height - 1 && !IsWall(bottomEnd + 1, boxCol) && IsWall(bottomEnd + 1, boxCol + wallDirection))
+        {
+            bottomEnd++;
+        }
+        bool bottomBlocked = IsWall(bottomEnd + 1, boxCol) || IsWall(bottomEnd, boxCol + wallDirection);
+
+        // Ha mindkét végén blokkolva van, ellenőrizzük, van-e cél a vonalon
+        if (topBlocked && bottomBlocked)
+        {
+            for (int row = topEnd; row <= bottomEnd; row++)
+            {
+                if (IsGoal(row, boxCol))
+                    return false; // Van cél a vonalon, nem deadlock
+            }
+            return true; // Nincs cél a vonalon, deadlock
+        }
 
         return false;
     }
