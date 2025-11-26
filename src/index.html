@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PUZZLE - Kooperatív AI Puzzle Játék</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🧩 PUZZLE</h1>
+            <p class="subtitle">Kooperatív Puzzle Játék AI Hint Rendszerrel</p>
+        </header>
+
+        <main>
+            <div class="controls">
+                <div class="difficulty-selector">
+                    <button class="difficulty-btn active" data-size="3">3×3</button>
+                    <button class="difficulty-btn" data-size="4">4×4</button>
+                    <button class="difficulty-btn" data-size="5">5×5</button>
+                </div>
+                <button id="newGameBtn" class="primary-btn">🔄 Új Játék</button>
+            </div>
+
+            <div class="game-area">
+                <div class="puzzle-container">
+                    <div id="puzzleGrid" class="puzzle-grid"></div>
+                </div>
+
+                <div class="stats-panel">
+                    <div class="stat">
+                        <span class="stat-label">Lépések</span>
+                        <span id="moveCount" class="stat-value">0</span>
+                    </div>
+                    <div class="stat">
+                        <span class="stat-label">Idő</span>
+                        <span id="timer" class="stat-value">00:00</span>
+                    </div>
+                    <div class="stat">
+                        <span class="stat-label">Optimális</span>
+                        <span id="optimalMoves" class="stat-value">-</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="ai-panel">
+                <div class="ai-header">
+                    <span class="ai-icon">🤖</span>
+                    <span class="ai-title">AI Asszisztens</span>
+                </div>
+                <div id="aiMessage" class="ai-message">
+                    Üdvözöllek! Válassz nehézségi szintet és indíts új játékot. Bármikor kérhetsz tőlem segítséget!
+                </div>
+                <div class="ai-buttons">
+                    <button id="hintBtn" class="hint-btn">💡 Hint Kérése</button>
+                    <button id="showNextBtn" class="hint-btn secondary">👀 Mutasd a következő lépést</button>
+                </div>
+            </div>
+
+            <div id="winModal" class="modal hidden">
+                <div class="modal-content">
+                    <h2>🎉 Gratulálok!</h2>
+                    <p>Sikeresen megoldottad a puzzle-t!</p>
+                    <div class="win-stats">
+                        <p>Lépések: <span id="finalMoves">0</span></p>
+                        <p>Idő: <span id="finalTime">00:00</span></p>
+                    </div>
+                    <button id="playAgainBtn" class="primary-btn">Új Játék</button>
+                </div>
+            </div>
+        </main>
+
+        <footer>
+            <p>BSc Szakdolgozat - Mesterséges Intelligencia és Ember Együttműködése</p>
+        </footer>
+    </div>
+
+    <script src="js/puzzle.js"></script>
+    <script src="js/ai-solver.js"></script>
+    <script src="js/hint-system.js"></script>
+    <script src="js/game.js"></script>
+</body>
+</html>
