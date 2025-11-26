@@ -61,8 +61,19 @@ public class SolutionResult
     public List<SolverMove> Moves { get; set; } = new();
     /// <summary>A keresés során végrehajtott iterációk száma</summary>
     public int Iterations { get; set; }
-    /// <summary>Sikertelen keresés esetén az ok (pl. "timeout", "unsolvable")</summary>
+    /// <summary>Sikertelen keresés esetén az ok (pl. "timeout", "exhausted")</summary>
     public string? Reason { get; set; }
+
+    /// <summary>
+    /// Ellenőrzi, hogy a sikertelen keresés timeout miatt történt-e.
+    /// </summary>
+    public bool IsTimeout => !Success && Reason == "timeout";
+
+    /// <summary>
+    /// Ellenőrzi, hogy a sikertelen keresés azért történt-e, mert kimerült az állapottér.
+    /// Ez valószínűleg azt jelenti, hogy nincs megoldás, de nem 100% biztos.
+    /// </summary>
+    public bool IsExhausted => !Success && Reason == "exhausted";
 }
 
 /// <summary>
@@ -86,16 +97,36 @@ public class AISolver
     private const int DeadlockPenalty = int.MaxValue / 2;
 
     /// <summary>
+    /// Alapértelmezett maximális iterációszám.
+    /// </summary>
+    private const int DefaultMaxIterations = 100000;
+
+    /// <summary>
     /// Maximális iterációszám a keresés során.
     /// A futási idő korlátozására szolgál, hogy elkerüljük a túl hosszú számításokat.
-    /// Alapértelmezett érték: 50000.
+    /// Alapértelmezett érték: 100000.
     /// 
     /// A szakdolgozatban hivatkozható: számítási komplexitás korlátozása.
     /// </summary>
-    public int MaxIterations { get; set; } = 50000;
+    public int MaxIterations { get; set; } = DefaultMaxIterations;
 
     /// <summary>
-    /// Alapértelmezett konstruktor 50000-es MaxIterations értékkel.
+    /// Debug mód engedélyezése - kiírja az iterációk számát a keresés végén.
+    /// </summary>
+    public bool DebugMode { get; set; } = false;
+
+    /// <summary>
+    /// Az utolsó keresés során elért iterációk száma.
+    /// </summary>
+    public int LastIterationCount { get; private set; } = 0;
+
+    /// <summary>
+    /// Az utolsó keresés leállási oka.
+    /// </summary>
+    public string? LastSearchResult { get; private set; }
+
+    /// <summary>
+    /// Alapértelmezett konstruktor 100000-es MaxIterations értékkel.
     /// </summary>
     public AISolver()
     {
@@ -104,7 +135,7 @@ public class AISolver
     /// <summary>
     /// Konstruktor egyedi MaxIterations értékkel.
     /// </summary>
-    /// <param name="maxIterations">Maximális iterációszám (alapértelmezett: 50000)</param>
+    /// <param name="maxIterations">Maximális iterációszám (alapértelmezett: 100000)</param>
     public AISolver(int maxIterations)
     {
         MaxIterations = maxIterations;
@@ -175,18 +206,25 @@ public class AISolver
     /// Ellenőrzi, hogy egy adott pozíción lévő láda deadlock állapotban van-e,
     /// azaz geometriailag lehetetlen-e célhelyre mozgatni.
     /// 
-    /// Delegálja a részletes ellenőrzést a SokobanGame osztály metódusaihoz,
-    /// amelyek sarok és fal-vonal deadlock-ot is kezelnek.
+    /// FONTOS: Csak akkor jelent deadlockot, ha biztosan menthetetlen az állapot.
+    /// Ha bizonytalan, inkább NEM tekinti deadlocknak, hogy ne zárjon ki
+    /// megoldható állapotokat.
     /// 
     /// A szakdolgozatban hivatkozható: AI keresés optimalizálás deadlock felismeréssel.
     /// </summary>
     /// <param name="game">Az aktuális játékállapot</param>
     /// <param name="row">A láda sor pozíciója</param>
     /// <param name="col">A láda oszlop pozíciója</param>
-    /// <returns>True, ha a láda deadlock állapotban van</returns>
+    /// <returns>True, ha a láda biztosan deadlock állapotban van</returns>
     public bool IsDeadlock(SokobanGame game, int row, int col)
     {
-        // Használjuk a SokobanGame bővített deadlock ellenőrzését
+        // Ellenőrizzük, hogy valóban van-e láda az adott pozíción
+        if (!game.IsBox(row, col))
+        {
+            return false;
+        }
+
+        // Használjuk a SokobanGame konzervatív deadlock ellenőrzését
         return game.CheckDeadlock(row, col);
     }
 
@@ -208,8 +246,12 @@ public class AISolver
     /// <returns>A megoldás eredménye (siker/kudarc, lépések, iterációk)</returns>
     public SolutionResult Solve(SokobanGame game)
     {
+        LastIterationCount = 0;
+        LastSearchResult = null;
+
         if (game.IsSolved())
         {
+            LastSearchResult = "already_solved";
             return new SolutionResult { Success = true };
         }
 
@@ -239,9 +281,10 @@ public class AISolver
 
                     if (!visited.Contains(stateKey))
                     {
-                        // Deadlock ellenőrzés
+                        // Deadlock ellenőrzés - csak ha láda tolás történt
                         if (result.Pushed)
                         {
+                            // A láda új pozíciója: játékos eredeti pozíció + 2 * irány
                             int boxRow = currentGame.PlayerPosition.Row + dir.DRow * 2;
                             int boxCol = currentGame.PlayerPosition.Col + dir.DCol * 2;
                             if (IsDeadlock(newGame, boxRow, boxCol))
@@ -259,6 +302,12 @@ public class AISolver
 
                         if (newGame.IsSolved())
                         {
+                            LastIterationCount = iterations;
+                            LastSearchResult = "success";
+                            if (DebugMode)
+                            {
+                                Console.WriteLine($"[DEBUG] Solver: megoldás találva {iterations} iteráció után");
+                            }
                             return new SolutionResult
                             {
                                 Success = true,
@@ -274,11 +323,20 @@ public class AISolver
             }
         }
 
+        LastIterationCount = iterations;
+        string reason = iterations >= MaxIterations ? "timeout" : "exhausted";
+        LastSearchResult = reason;
+
+        if (DebugMode)
+        {
+            Console.WriteLine($"[DEBUG] Solver: keresés leállt - {reason}, {iterations} iteráció, {visited.Count} állapot vizsgálva");
+        }
+
         return new SolutionResult
         {
             Success = false,
             Iterations = iterations,
-            Reason = iterations >= MaxIterations ? "timeout" : "unsolvable"
+            Reason = reason
         };
     }
 
@@ -305,6 +363,27 @@ public class AISolver
             );
         }
         return null;
+    }
+
+    /// <summary>
+    /// Következő lépés megtalálása részletes eredménnyel.
+    /// 
+    /// Megoldja a játékot és visszaadja az első lépést a megoldásból,
+    /// valamint a teljes megoldás eredményét (beleértve a timeout/exhausted információt).
+    /// </summary>
+    /// <param name="game">Az aktuális játékállapot</param>
+    /// <returns>Tuple: (következő lépés info vagy null, megoldás eredmény)</returns>
+    public ((SolverMove? Move, int TotalMoves, int PushCount)? NextMove, SolutionResult Solution) GetNextMoveWithDetails(SokobanGame game)
+    {
+        var solution = Solve(game);
+        if (solution.Success && solution.Moves.Count > 0)
+        {
+            return (
+                (solution.Moves[0], solution.Moves.Count, solution.Moves.Count(m => m.Pushed)),
+                solution
+            );
+        }
+        return (null, solution);
     }
 
     /// <summary>
