@@ -203,6 +203,9 @@ public class AISolver
     /// Ha bizonytalan, inkább NEM tekinti deadlocknak, hogy ne zárjon ki
     /// megoldható állapotokat.
     /// 
+    /// MEGJEGYZÉS: A hívó felelőssége ellenőrizni, hogy az adott pozíción 
+    /// valóban láda van-e. A Solve metódus ezt biztosítja a push detektálással.
+    /// 
     /// A szakdolgozatban hivatkozható: AI keresés optimalizálás deadlock felismeréssel.
     /// </summary>
     /// <param name="game">Az aktuális játékállapot</param>
@@ -211,12 +214,6 @@ public class AISolver
     /// <returns>True, ha a láda biztosan deadlock állapotban van</returns>
     public bool IsDeadlock(SokobanGame game, int row, int col)
     {
-        // Ellenőrizzük, hogy valóban van-e láda az adott pozíción
-        if (!game.IsBox(row, col))
-        {
-            return false;
-        }
-
         // Használjuk a SokobanGame konzervatív deadlock ellenőrzését
         return game.CheckDeadlock(row, col);
     }

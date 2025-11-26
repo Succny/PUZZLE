@@ -440,8 +440,8 @@ public class SokobanGame
         bool downWall = IsWall(boxRow + 1, boxCol);
 
         // Csak akkor vizsgálunk vízszintes fal-vonalat, ha pontosan EGY oldalon van fal
-        // (ha mindkét oldalon fal van, az sarok-deadlock, amit máshol kezelünk)
-        if (upWall != downWall)
+        // (XOR: ha mindkét oldalon fal van, az sarok-deadlock, amit az IsCornerDeadlock kezel)
+        if (upWall ^ downWall)
         {
             // Vizsgáljuk a vízszintes vonalat
             if (IsWallLineDeadlockHorizontal(boxRow, boxCol, upWall ? -1 : 1))
@@ -453,7 +453,8 @@ public class SokobanGame
         bool rightWall = IsWall(boxRow, boxCol + 1);
 
         // Csak akkor vizsgálunk függőleges fal-vonalat, ha pontosan EGY oldalon van fal
-        if (leftWall != rightWall)
+        // (XOR: ha mindkét oldalon fal van, az sarok-deadlock, amit az IsCornerDeadlock kezel)
+        if (leftWall ^ rightWall)
         {
             // Vizsgáljuk a függőleges vonalat
             if (IsWallLineDeadlockVertical(boxRow, boxCol, leftWall ? -1 : 1))
