@@ -1,321 +1,225 @@
 /**
- * PUZZLE - AI Megoldó (A* Search Algorithm)
+ * SOKOBAN - AI Megoldó (BFS/A* Search Algorithm)
  * 
- * Ez a modul az A* keresési algoritmust implementálja
- * a puzzle optimális megoldásának megtalálásához.
+ * Ez a modul a keresési algoritmust implementálja
+ * a Sokoban pályák megoldásának megtalálásához.
  */
 
-class PuzzleSolver {
+class SokobanSolver {
     constructor() {
-        this.maxIterations = 100000; // Maximális iterációk korlátja
+        this.maxIterations = 50000; // Maximális iterációk korlátja
+        this.directions = [
+            { dRow: -1, dCol: 0, name: 'up', arrow: '↑' },
+            { dRow: 1, dCol: 0, name: 'down', arrow: '↓' },
+            { dRow: 0, dCol: -1, name: 'left', arrow: '←' },
+            { dRow: 0, dCol: 1, name: 'right', arrow: '→' }
+        ];
     }
 
     /**
-     * Manhattan-távolság heurisztika számítása
-     * @param {number[]} state - Puzzle állapot 1D tömbként
-     * @param {number} size - Puzzle mérete
-     * @returns {number} - Manhattan-távolság
-     */
-    manhattanDistance(state, size) {
-        let distance = 0;
-        for (let i = 0; i < state.length; i++) {
-            const value = state[i];
-            if (value !== 0) {
-                const currentRow = Math.floor(i / size);
-                const currentCol = i % size;
-                const targetRow = Math.floor((value - 1) / size);
-                const targetCol = (value - 1) % size;
-                distance += Math.abs(currentRow - targetRow) + Math.abs(currentCol - targetCol);
-            }
-        }
-        return distance;
-    }
-
-    /**
-     * Lineáris konfliktus heurisztika (Manhattan + extra)
-     * @param {number[]} state - Puzzle állapot
-     * @param {number} size - Puzzle mérete
+     * Heurisztika: összes láda Manhattan-távolsága a legközelebbi célhelytől
+     * @param {Sokoban} game - Játék objektum
      * @returns {number}
      */
-    linearConflict(state, size) {
-        let conflicts = 0;
+    heuristic(game) {
+        const state = game.getState();
+        let totalDistance = 0;
 
-        // Sor konfliktusok
-        for (let row = 0; row < size; row++) {
-            for (let i = 0; i < size; i++) {
-                for (let j = i + 1; j < size; j++) {
-                    const posI = row * size + i;
-                    const posJ = row * size + j;
-                    const valI = state[posI];
-                    const valJ = state[posJ];
-                    
-                    if (valI !== 0 && valJ !== 0) {
-                        const targetRowI = Math.floor((valI - 1) / size);
-                        const targetRowJ = Math.floor((valJ - 1) / size);
-                        const targetColI = (valI - 1) % size;
-                        const targetColJ = (valJ - 1) % size;
-                        
-                        if (targetRowI === row && targetRowJ === row && targetColI > targetColJ) {
-                            conflicts++;
-                        }
-                    }
-                }
+        for (const box of state.boxes) {
+            let minDist = Infinity;
+            for (const goal of state.goals) {
+                const dist = Math.abs(box.row - goal.row) + Math.abs(box.col - goal.col);
+                minDist = Math.min(minDist, dist);
             }
+            totalDistance += minDist;
         }
 
-        // Oszlop konfliktusok
-        for (let col = 0; col < size; col++) {
-            for (let i = 0; i < size; i++) {
-                for (let j = i + 1; j < size; j++) {
-                    const posI = i * size + col;
-                    const posJ = j * size + col;
-                    const valI = state[posI];
-                    const valJ = state[posJ];
-                    
-                    if (valI !== 0 && valJ !== 0) {
-                        const targetRowI = Math.floor((valI - 1) / size);
-                        const targetRowJ = Math.floor((valJ - 1) / size);
-                        const targetColI = (valI - 1) % size;
-                        const targetColJ = (valJ - 1) % size;
-                        
-                        if (targetColI === col && targetColJ === col && targetRowI > targetRowJ) {
-                            conflicts++;
-                        }
-                    }
-                }
-            }
+        return totalDistance;
+    }
+
+    /**
+     * Ellenőrzi, hogy a láda pozíció deadlock-e
+     * @param {Sokoban} game - Játék objektum
+     * @param {number} row - Sor
+     * @param {number} col - Oszlop
+     * @returns {boolean}
+     */
+    isDeadlock(game, row, col) {
+        // Ha célhelyen van, nem deadlock
+        if (game.isGoal(row, col)) {
+            return false;
         }
 
-        return this.manhattanDistance(state, size) + 2 * conflicts;
-    }
+        // Sarok deadlock
+        const walls = {
+            up: game.isWall(row - 1, col),
+            down: game.isWall(row + 1, col),
+            left: game.isWall(row, col - 1),
+            right: game.isWall(row, col + 1)
+        };
 
-    /**
-     * Üres hely pozíciójának megtalálása
-     * @param {number[]} state - Puzzle állapot
-     * @returns {number} - Üres hely indexe
-     */
-    findEmpty(state) {
-        return state.indexOf(0);
-    }
-
-    /**
-     * Lehetséges lépések generálása
-     * @param {number[]} state - Aktuális állapot
-     * @param {number} size - Puzzle mérete
-     * @returns {Array} - Lehetséges új állapotok és a mozgatott csempe
-     */
-    getNeighbors(state, size) {
-        const emptyIdx = this.findEmpty(state);
-        const emptyRow = Math.floor(emptyIdx / size);
-        const emptyCol = emptyIdx % size;
-        const neighbors = [];
-
-        const moves = [
-            { dr: -1, dc: 0, name: 'up' },
-            { dr: 1, dc: 0, name: 'down' },
-            { dr: 0, dc: -1, name: 'left' },
-            { dr: 0, dc: 1, name: 'right' }
-        ];
-
-        for (const move of moves) {
-            const newRow = emptyRow + move.dr;
-            const newCol = emptyCol + move.dc;
-
-            if (newRow >= 0 && newRow < size && newCol >= 0 && newCol < size) {
-                const newIdx = newRow * size + newCol;
-                const newState = [...state];
-                const movedTile = state[newIdx];
-                
-                // Csere
-                newState[emptyIdx] = movedTile;
-                newState[newIdx] = 0;
-
-                neighbors.push({
-                    state: newState,
-                    move: move.name,
-                    movedTile: movedTile,
-                    tilePos: { row: newRow, col: newCol }
-                });
-            }
+        if ((walls.up && walls.left) || (walls.up && walls.right) ||
+            (walls.down && walls.left) || (walls.down && walls.right)) {
+            return true;
         }
 
-        return neighbors;
+        return false;
     }
 
     /**
-     * Állapot kulcs generálása hash-eléshez
-     * @param {number[]} state - Puzzle állapot
-     * @returns {string}
+     * Ellenőrzi, hogy az állapot deadlock-e (bármely láda)
+     * @param {Sokoban} game - Játék objektum
+     * @returns {boolean}
      */
-    stateKey(state) {
-        return state.join(',');
+    hasDeadlock(game) {
+        const state = game.getState();
+        for (const box of state.boxes) {
+            if (!box.onGoal && this.isDeadlock(game, box.row, box.col)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**
-     * A* algoritmus a megoldás megtalálásához
-     * @param {number[]} startState - Kezdeti állapot
-     * @param {number} size - Puzzle mérete
+     * BFS algoritmus a megoldás megtalálásához
+     * @param {Sokoban} game - Játék objektum
      * @returns {Object|null} - Megoldás vagy null
      */
-    solve(startState, size) {
-        // Célállapot generálása
-        const goalState = [];
-        for (let i = 1; i < size * size; i++) {
-            goalState.push(i);
-        }
-        goalState.push(0);
-
-        // Ellenőrzés: már megoldva van?
-        if (this.stateKey(startState) === this.stateKey(goalState)) {
-            return { moves: [], path: [startState] };
+    solve(game) {
+        if (game.isSolved()) {
+            return { moves: [], success: true };
         }
 
-        // Priority Queue implementáció (egyszerű tömb rendezéssel)
-        const openSet = [];
-        const closedSet = new Set();
-        const gScore = new Map();
-        const fScore = new Map();
-        const cameFrom = new Map();
-        const moveInfo = new Map();
+        const visited = new Set();
+        const queue = [{
+            game: game.clone(),
+            moves: [],
+            cost: 0
+        }];
 
-        const startKey = this.stateKey(startState);
-        gScore.set(startKey, 0);
-        fScore.set(startKey, this.linearConflict(startState, size));
-        
-        openSet.push({
-            state: startState,
-            f: fScore.get(startKey)
-        });
+        visited.add(game.getStateKey());
 
         let iterations = 0;
 
-        while (openSet.length > 0 && iterations < this.maxIterations) {
+        while (queue.length > 0 && iterations < this.maxIterations) {
             iterations++;
 
-            // Legkisebb f értékű elem kiválasztása
-            openSet.sort((a, b) => a.f - b.f);
-            const current = openSet.shift();
-            const currentKey = this.stateKey(current.state);
+            // A* prioritás: legkisebb f(n) = g(n) + h(n)
+            queue.sort((a, b) => (a.cost + this.heuristic(a.game)) - (b.cost + this.heuristic(b.game)));
 
-            // Célállapot elérve?
-            if (currentKey === this.stateKey(goalState)) {
-                return this.reconstructPath(current.state, cameFrom, moveInfo, startState);
-            }
+            const current = queue.shift();
 
-            closedSet.add(currentKey);
+            for (const dir of this.directions) {
+                const newGame = current.game.clone();
+                const result = newGame.move(dir.dRow, dir.dCol);
 
-            // Szomszédok vizsgálata
-            const neighbors = this.getNeighbors(current.state, size);
+                if (result.success) {
+                    const stateKey = newGame.getStateKey();
 
-            for (const neighbor of neighbors) {
-                const neighborKey = this.stateKey(neighbor.state);
+                    if (!visited.has(stateKey)) {
+                        // Deadlock ellenőrzés
+                        if (result.pushed && this.hasDeadlock(newGame)) {
+                            continue; // Skip deadlock states
+                        }
 
-                if (closedSet.has(neighborKey)) {
-                    continue;
-                }
+                        visited.add(stateKey);
 
-                const tentativeG = gScore.get(currentKey) + 1;
+                        const newMoves = [...current.moves, {
+                            direction: dir.name,
+                            arrow: dir.arrow,
+                            dRow: dir.dRow,
+                            dCol: dir.dCol,
+                            pushed: result.pushed
+                        }];
 
-                if (!gScore.has(neighborKey) || tentativeG < gScore.get(neighborKey)) {
-                    cameFrom.set(neighborKey, currentKey);
-                    moveInfo.set(neighborKey, {
-                        move: neighbor.move,
-                        movedTile: neighbor.movedTile,
-                        tilePos: neighbor.tilePos
-                    });
-                    gScore.set(neighborKey, tentativeG);
-                    const f = tentativeG + this.linearConflict(neighbor.state, size);
-                    fScore.set(neighborKey, f);
+                        if (newGame.isSolved()) {
+                            return {
+                                moves: newMoves,
+                                success: true,
+                                iterations: iterations
+                            };
+                        }
 
-                    // Hozzáadás ha még nincs benne
-                    const existingIdx = openSet.findIndex(n => this.stateKey(n.state) === neighborKey);
-                    if (existingIdx === -1) {
-                        openSet.push({
-                            state: neighbor.state,
-                            f: f
+                        queue.push({
+                            game: newGame,
+                            moves: newMoves,
+                            cost: current.cost + 1
                         });
                     }
                 }
             }
         }
 
-        // Nem találtunk megoldást (vagy túl sok iteráció)
-        return null;
+        // Nem találtunk megoldást
+        return {
+            moves: [],
+            success: false,
+            iterations: iterations,
+            reason: iterations >= this.maxIterations ? 'timeout' : 'unsolvable'
+        };
     }
 
     /**
-     * Útvonal rekonstruálása
-     * @param {number[]} goalState - Célállapot
-     * @param {Map} cameFrom - Honnan érkeztünk
-     * @param {Map} moveInfo - Lépés információk
-     * @param {number[]} startState - Kezdeti állapot
-     * @returns {Object}
-     */
-    reconstructPath(goalState, cameFrom, moveInfo, startState) {
-        const path = [];
-        const moves = [];
-        let currentKey = this.stateKey(goalState);
-        const startKey = this.stateKey(startState);
-
-        while (currentKey !== startKey) {
-            const state = currentKey.split(',').map(Number);
-            path.unshift(state);
-            moves.unshift(moveInfo.get(currentKey));
-            currentKey = cameFrom.get(currentKey);
-        }
-        path.unshift(startState);
-
-        return { moves, path };
-    }
-
-    /**
-     * Csak az első lépés megtalálása (hint-hez)
-     * @param {number[]} state - Aktuális állapot
-     * @param {number} size - Puzzle mérete
+     * Csak a következő lépés megtalálása (hint-hez)
+     * @param {Sokoban} game - Játék objektum
      * @returns {Object|null}
      */
-    getNextMove(state, size) {
-        const solution = this.solve(state, size);
-        if (solution && solution.moves.length > 0) {
+    getNextMove(game) {
+        const solution = this.solve(game);
+        if (solution && solution.success && solution.moves.length > 0) {
             return {
                 ...solution.moves[0],
-                totalMoves: solution.moves.length
+                totalMoves: solution.moves.length,
+                pushCount: solution.moves.filter(m => m.pushed).length
             };
         }
         return null;
     }
 
     /**
-     * Megoldható-e a puzzle
-     * @param {number[]} state - Puzzle állapot
-     * @param {number} size - Puzzle mérete
+     * Ellenőrzi, hogy a pálya megoldható-e az aktuális állapotból
+     * @param {Sokoban} game - Játék objektum
      * @returns {boolean}
      */
-    isSolvable(state, size) {
-        let inversions = 0;
-        const tilesWithoutEmpty = state.filter(t => t !== 0);
+    isSolvable(game) {
+        const solution = this.solve(game);
+        return solution && solution.success;
+    }
 
-        for (let i = 0; i < tilesWithoutEmpty.length; i++) {
-            for (let j = i + 1; j < tilesWithoutEmpty.length; j++) {
-                if (tilesWithoutEmpty[i] > tilesWithoutEmpty[j]) {
-                    inversions++;
+    /**
+     * Megoldás hosszának becslése (gyors heurisztika)
+     * @param {Sokoban} game - Játék objektum
+     * @returns {number}
+     */
+    estimateSolutionLength(game) {
+        return this.heuristic(game) * 2; // Durva becslés
+    }
+
+    /**
+     * Deadlock pozíciók azonosítása a pályán
+     * @param {Sokoban} game - Játék objektum
+     * @returns {Array}
+     */
+    findDeadlockPositions(game) {
+        const deadlocks = [];
+        const state = game.getState();
+
+        for (let row = 0; row < game.height; row++) {
+            for (let col = 0; col < game.width; col++) {
+                if (!game.isWall(row, col) && !game.isGoal(row, col)) {
+                    if (this.isDeadlock(game, row, col)) {
+                        deadlocks.push({ row, col });
+                    }
                 }
             }
         }
 
-        if (size % 2 === 1) {
-            // Páratlan méret: páros inverziószám kell
-            return inversions % 2 === 0;
-        } else {
-            // Páros méret: inverziószám + üres sor paritása számít
-            const emptyRow = Math.floor(state.indexOf(0) / size);
-            const emptyRowFromBottom = size - emptyRow;
-            return (inversions + emptyRowFromBottom) % 2 === 0;
-        }
+        return deadlocks;
     }
 }
 
 // Export for use in other modules
 if (typeof module !== 'undefined' && module.exports) {
-    module.exports = PuzzleSolver;
+    module.exports = SokobanSolver;
 }

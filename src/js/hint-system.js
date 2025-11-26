@@ -1,10 +1,10 @@
 /**
- * PUZZLE - AI Hint Rendszer
+ * SOKOBAN - AI Hint Rendszer
  * 
  * Ez a modul felelős a játékos segítéséért:
  * - Hint generálás
  * - Stratégiai tanácsok
- * - Elakadás felismerés
+ * - Deadlock figyelmeztetés
  * - Motiváló üzenetek
  */
 
@@ -13,62 +13,68 @@ class HintSystem {
         this.solver = solver;
         this.lastHintTime = 0;
         this.hintCount = 0;
-        this.idleTime = 0;
         this.lastMoveTime = Date.now();
+        
+        // Időküszöbök (másodpercben)
+        this.IDLE_WARNING_THRESHOLD = 30;
+        this.IDLE_CRITICAL_THRESHOLD = 60;
         
         // Üzenetek kategóriánként
         this.messages = {
             greeting: [
                 "Üdvözöllek! Készen állok segíteni. 🤖",
-                "Szia! Kérj tőlem hint-et, ha elakadtál!",
-                "Hello! Együtt megoldjuk ezt a puzzle-t!"
+                "Szia! Told a ládákat a célhelyekre!",
+                "Hello! Együtt megoldjuk ezt a pályát!"
             ],
             encouragement: [
                 "Szuper, jó úton haladsz! 👍",
                 "Remek lépés volt!",
-                "Folytatsd így, már közel vagy!",
-                "Nagyon jól csinálod!"
+                "Folytatsd így!",
+                "Nagyon jól csinálod!",
+                "Egy láda már a helyén! ✅"
             ],
             stuck: [
                 "Úgy látom, egy ideje nem léptél. Segíthetek?",
                 "Elakadtál? Kérj egy hint-et!",
-                "Ne aggódj, néha nehéz ezeket a puzzle-okat. Segítek!"
+                "Ne aggódj, a Sokoban nehéz játék. Segítek!"
+            ],
+            deadlock: [
+                "⚠️ Vigyázz! Egy láda zsákutcába került!",
+                "⚠️ Ez a láda már nem mozdítható a célhelyre!",
+                "⚠️ Deadlock! Használd a Vissza gombot!"
             ],
             hint_used: [
                 "Remélem, hasznos volt a tipp! 💡",
                 "Most már tudod, mit kell tenni!",
-                "Ezzel a lépéssel közelebb kerülsz a megoldáshoz!"
+                "Ezzel közelebb kerülsz a megoldáshoz!"
             ],
             almost_done: [
-                "Már majdnem kész vagy! Csak pár lépés!",
+                "Már majdnem kész vagy! Csak pár láda!",
                 "A végéhez közelítesz, ne add fel!",
                 "Utolsó lépések... 🎯"
             ],
             solved: [
-                "🎉 Fantasztikus! Megoldottad!",
+                "🎉 Fantasztikus! Teljesítetted a pályát!",
                 "🏆 Gratulálok a győzelemhez!",
-                "⭐ Kiváló munka! Készen állsz a következő kihívásra?"
+                "⭐ Kiváló munka! Készen állsz a következő pályára?"
+            ],
+            undo_suggest: [
+                "💡 Tipp: Használd a ↩️ Vissza gombot!",
+                "Lépj vissza és próbálj más megközelítést!",
+                "Az undo a barátod - ne félj használni!"
             ]
         };
 
         // Stratégiai tanácsok
-        this.strategies = {
-            3: [
-                "3×3-as puzzle-nál először az első sort rendezd!",
-                "Ha az első sor kész, a második sorra koncentrálj.",
-                "Az utolsó sorban csak a két alsó sarok marad."
-            ],
-            4: [
-                "4×4-es puzzle-nál dolgozz rétegekben!",
-                "Először az első két sort, aztán a maradékot.",
-                "Ne feledd: a sarkokat nehezebb a helyükre tenni."
-            ],
-            5: [
-                "5×5-ös puzzle: ez már igazi kihívás!",
-                "Oszd részekre a problémát: felső rész, majd alsó.",
-                "Légy türelmes, ez a méret több időt igényel."
-            ]
-        };
+        this.strategies = [
+            "Először gondold végig, melyik ládát mozdítsd!",
+            "A sarokban lévő ládákat nehéz kimozdítani.",
+            "Próbáld a ládákat a fal mentén a célhelyek felé tolni.",
+            "Néha vissza kell lépni, hogy előre juss.",
+            "A ládák sorrendje is számít!",
+            "Vigyázz, hogy ne told sarokba a ládát!",
+            "Gondolkodj előre: mi lesz a következő lépés után?"
+        ];
     }
 
     /**
@@ -83,51 +89,52 @@ class HintSystem {
     }
 
     /**
-     * Stratégiai tanács a puzzle mérete alapján
-     * @param {number} size - Puzzle mérete
+     * Véletlenszerű stratégiai tanács
      * @returns {string}
      */
-    getStrategyTip(size) {
-        const tips = this.strategies[size] || this.strategies[3];
-        return tips[Math.floor(Math.random() * tips.length)];
+    getStrategyTip() {
+        return this.strategies[Math.floor(Math.random() * this.strategies.length)];
     }
 
     /**
      * Hint generálása az aktuális állapothoz
-     * @param {SlidingPuzzle} puzzle - A puzzle objektum
+     * @param {Sokoban} game - A játék objektum
      * @returns {Object} - Hint információk
      */
-    generateHint(puzzle) {
+    generateHint(game) {
         this.hintCount++;
-        const state = puzzle.getState();
-        const size = puzzle.size;
-
-        // A* megoldó használata
-        const nextMove = this.solver.getNextMove(state, size);
+        
+        // Megoldó használata
+        const nextMove = this.solver.getNextMove(game);
 
         if (!nextMove) {
+            // Nem megoldható - valószínűleg deadlock
             return {
-                type: 'error',
-                message: "Nem tudok megoldást találni. Próbálj új játékot!",
-                tile: null,
+                type: 'deadlock',
+                message: this.getRandomMessage('deadlock') + "\n" + this.getRandomMessage('undo_suggest'),
                 direction: null
             };
         }
 
-        const directions = {
-            'up': 'felfelé',
-            'down': 'lefelé',
-            'left': 'balra',
-            'right': 'jobbra'
+        const directionNames = {
+            'up': 'felfelé (↑)',
+            'down': 'lefelé (↓)',
+            'left': 'balra (←)',
+            'right': 'jobbra (→)'
         };
+
+        const actionText = nextMove.pushed ? 
+            `Told a ládát ${directionNames[nextMove.direction]}!` :
+            `Menj ${directionNames[nextMove.direction]}!`;
 
         const hint = {
             type: 'move',
-            message: `Mozgasd a ${nextMove.movedTile}-es csempét ${directions[nextMove.move]}! ` +
-                     `(Még ${nextMove.totalMoves} lépés a megoldásig)`,
-            tile: nextMove.movedTile,
-            tilePos: nextMove.tilePos,
-            direction: nextMove.move,
+            message: `${actionText}\n(Még ${nextMove.totalMoves} lépés, ${nextMove.pushCount} tolás a megoldásig)`,
+            direction: nextMove.direction,
+            arrow: nextMove.arrow,
+            dRow: nextMove.dRow,
+            dCol: nextMove.dCol,
+            pushed: nextMove.pushed,
             remainingMoves: nextMove.totalMoves
         };
 
@@ -135,49 +142,57 @@ class HintSystem {
     }
 
     /**
-     * Részletes stratégiai hint generálása
-     * @param {SlidingPuzzle} puzzle - A puzzle objektum
+     * Részletes állapot elemzés
+     * @param {Sokoban} game - A játék objektum
      * @returns {Object}
      */
-    generateDetailedHint(puzzle) {
-        const state = puzzle.getState();
-        const size = puzzle.size;
+    generateDetailedHint(game) {
+        const state = game.getState();
         
-        // Hány csempe van a helyén?
-        let correctCount = 0;
-        for (let row = 0; row < size; row++) {
-            for (let col = 0; col < size; col++) {
-                if (puzzle.isInCorrectPosition(row, col)) {
-                    correctCount++;
-                }
-            }
-        }
-
-        const totalTiles = size * size;
-        const progress = Math.round((correctCount / totalTiles) * 100);
-
-        // Manhattan távolság az egész puzzle-ra
-        const distance = this.solver.manhattanDistance(state, size);
+        // Hány láda van célhelyen?
+        const boxesOnGoal = state.boxes.filter(b => b.onGoal).length;
+        const totalBoxes = state.boxes.length;
+        const progress = Math.round((boxesOnGoal / totalBoxes) * 100);
 
         let message = `📊 Állapot elemzés:\n`;
-        message += `• ${correctCount}/${totalTiles} csempe van a helyén (${progress}%)\n`;
-        message += `• Becsült távolság a megoldástól: ${distance}\n\n`;
+        message += `• ${boxesOnGoal}/${totalBoxes} láda a célhelyen (${progress}%)\n`;
+        message += `• Eddigi lépések: ${game.moves}\n`;
+        message += `• Eddigi tolások: ${game.pushes}\n\n`;
 
-        if (progress < 30) {
-            message += `💡 Tipp: ${this.getStrategyTip(size)}`;
-        } else if (progress < 70) {
-            message += `💡 Jó úton haladsz! Koncentrálj a még rossz helyen lévő csempékre.`;
+        // Megoldhatóság ellenőrzése
+        const solution = this.solver.solve(game);
+        if (solution && solution.success) {
+            message += `✅ A pálya megoldható!\n`;
+            message += `Hátralévő lépések: ~${solution.moves.length}\n\n`;
         } else {
-            message += `💡 Már majdnem kész! Csak néhány csempét kell még mozgatni.`;
+            message += `⚠️ A pálya nem megoldható ebből az állapotból!\n`;
+            message += `Használd a Vissza gombot!\n\n`;
         }
+
+        message += `💡 Tipp: ${this.getStrategyTip()}`;
 
         return {
             type: 'analysis',
             message: message,
             progress: progress,
-            correctTiles: correctCount,
-            distance: distance
+            boxesOnGoal: boxesOnGoal,
+            totalBoxes: totalBoxes,
+            solvable: solution && solution.success
         };
+    }
+
+    /**
+     * Deadlock figyelmeztetés generálása
+     * @param {Sokoban} game - A játék objektum
+     * @param {number} boxRow - Láda sora
+     * @param {number} boxCol - Láda oszlopa
+     * @returns {string|null}
+     */
+    getDeadlockWarning(game, boxRow, boxCol) {
+        if (this.solver.isDeadlock(game, boxRow, boxCol)) {
+            return this.getRandomMessage('deadlock');
+        }
+        return null;
     }
 
     /**
@@ -186,35 +201,39 @@ class HintSystem {
      * @returns {string|null}
      */
     checkIdleState(idleSeconds) {
-        if (idleSeconds > 30 && idleSeconds < 35) {
+        if (idleSeconds > this.IDLE_WARNING_THRESHOLD && idleSeconds < this.IDLE_WARNING_THRESHOLD + 5) {
             return this.getRandomMessage('stuck');
-        } else if (idleSeconds > 60) {
-            return "Látom, egy ideje nem léptél. Kattints a 'Hint Kérése' gombra segítségért!";
+        } else if (idleSeconds > this.IDLE_CRITICAL_THRESHOLD) {
+            return "Látom, elakadtál. Kattints a '💡 Hint Kérése' gombra, és megmutatom a következő lépést!";
         }
         return null;
     }
 
     /**
      * Lépés utáni visszajelzés
-     * @param {SlidingPuzzle} puzzle - A puzzle objektum
-     * @param {boolean} wasGoodMove - Jó lépés volt-e (közelebb a megoldáshoz)
-     * @returns {string}
+     * @param {Sokoban} game - A játék objektum
+     * @param {Object} moveResult - A lépés eredménye
+     * @returns {string|null}
      */
-    getMoveResponse(puzzle, wasGoodMove) {
-        const state = puzzle.getState();
-        const size = puzzle.size;
-        const nextMove = this.solver.getNextMove(state, size);
-
-        if (!nextMove) {
-            // Megoldva
+    getMoveResponse(game, moveResult) {
+        if (moveResult.solved) {
             return this.getRandomMessage('solved');
         }
 
-        if (nextMove.totalMoves <= 3) {
+        if (moveResult.deadlock) {
+            return this.getRandomMessage('deadlock');
+        }
+
+        const state = game.getState();
+        const boxesOnGoal = state.boxes.filter(b => b.onGoal).length;
+        const totalBoxes = state.boxes.length;
+
+        if (boxesOnGoal === totalBoxes - 1) {
             return this.getRandomMessage('almost_done');
         }
 
-        if (wasGoodMove && Math.random() > 0.7) {
+        // Véletlenszerű bátorítás
+        if (moveResult.pushed && Math.random() > 0.7) {
             return this.getRandomMessage('encouragement');
         }
 
@@ -222,20 +241,15 @@ class HintSystem {
     }
 
     /**
-     * Kezdő üzenet új játékhoz
-     * @param {number} size - Puzzle mérete
+     * Kezdő üzenet új pályához
+     * @param {Object} level - Pálya objektum
+     * @param {number} levelNum - Pálya száma
      * @returns {string}
      */
-    getWelcomeMessage(size) {
-        const difficulty = {
-            3: 'könnyű',
-            4: 'közepes',
-            5: 'nehéz'
-        };
-
-        return `🎮 Új ${size}×${size} (${difficulty[size]}) játék! ` +
-               `Rendezd a számokat 1-től ${size*size - 1}-ig! ` +
-               `${this.getStrategyTip(size)}`;
+    getWelcomeMessage(level, levelNum) {
+        return `🎮 ${levelNum}. pálya: "${level.name}" (${level.difficulty})\n` +
+               `Told a ládákat (📦) a célhelyekre (🎯)!\n` +
+               `${this.getStrategyTip()}`;
     }
 
     /**
