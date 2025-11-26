@@ -63,6 +63,34 @@ public class SokobanGame
     }
 
     /// <summary>
+    /// Privát konstruktor klónozáshoz
+    /// </summary>
+    private SokobanGame(SokobanGame other)
+    {
+        CurrentLevel = other.CurrentLevel;
+        _history = new Stack<GameState>();
+        Width = other.Width;
+        Height = other.Height;
+        Moves = other.Moves;
+        Pushes = other.Pushes;
+        _playerRow = other._playerRow;
+        _playerCol = other._playerCol;
+        
+        _map = new char[Height, Width];
+        _originalMap = new char[Height, Width];
+        Array.Copy(other._map, _map, other._map.Length);
+        Array.Copy(other._originalMap, _originalMap, other._originalMap.Length);
+    }
+
+    /// <summary>
+    /// Játék klónozása (AI solver-hez)
+    /// </summary>
+    public SokobanGame Clone()
+    {
+        return new SokobanGame(this);
+    }
+
+    /// <summary>
     /// Játék inicializálása
     /// </summary>
     private void Initialize(Level level)
@@ -92,6 +120,16 @@ public class SokobanGame
         Moves = 0;
         Pushes = 0;
         _history.Clear();
+    }
+
+    /// <summary>
+    /// Pálya betöltése
+    /// </summary>
+    public void LoadLevel(Level level)
+    {
+        CurrentLevel = level;
+        _history.Clear();
+        Initialize(level);
     }
 
     /// <summary>

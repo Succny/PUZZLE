@@ -210,17 +210,6 @@ public class AISolver
     /// </summary>
     private SokobanGame CloneGame(SokobanGame original)
     {
-        var clone = new SokobanGame(original.CurrentLevel);
-        // A térkép állapotát kell másolni
-        var map = original.CloneMap();
-        var field = typeof(SokobanGame).GetField("_map", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-        field?.SetValue(clone, map);
-        
-        var playerRowField = typeof(SokobanGame).GetField("_playerRow", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-        var playerColField = typeof(SokobanGame).GetField("_playerCol", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-        playerRowField?.SetValue(clone, original.PlayerPosition.Row);
-        playerColField?.SetValue(clone, original.PlayerPosition.Col);
-        
-        return clone;
+        return original.Clone();
     }
 }

@@ -368,36 +368,8 @@ public class ConsoleUI
             _currentLevelIndex = index;
             var level = Levels.AllLevels[index];
             
-            // Új játék objektum létrehozása
-            var newGame = new SokobanGame(level);
-            
-            // Reflection használata a privát mezők másolásához
-            var mapField = typeof(SokobanGame).GetField("_map", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-            var originalMapField = typeof(SokobanGame).GetField("_originalMap", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-            var playerRowField = typeof(SokobanGame).GetField("_playerRow", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-            var playerColField = typeof(SokobanGame).GetField("_playerCol", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-            var widthProp = typeof(SokobanGame).GetProperty("Width");
-            var heightProp = typeof(SokobanGame).GetProperty("Height");
-            var movesProp = typeof(SokobanGame).GetProperty("Moves");
-            var pushesProp = typeof(SokobanGame).GetProperty("Pushes");
-            var currentLevelField = typeof(SokobanGame).GetProperty("CurrentLevel");
-            
-            mapField?.SetValue(_game, mapField.GetValue(newGame));
-            originalMapField?.SetValue(_game, originalMapField.GetValue(newGame));
-            playerRowField?.SetValue(_game, playerRowField.GetValue(newGame));
-            playerColField?.SetValue(_game, playerColField.GetValue(newGame));
-            
-            var widthBackingField = typeof(SokobanGame).GetField("<Width>k__BackingField", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-            var heightBackingField = typeof(SokobanGame).GetField("<Height>k__BackingField", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-            var movesBackingField = typeof(SokobanGame).GetField("<Moves>k__BackingField", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-            var pushesBackingField = typeof(SokobanGame).GetField("<Pushes>k__BackingField", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-            var currentLevelBackingField = typeof(SokobanGame).GetField("<CurrentLevel>k__BackingField", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-            
-            widthBackingField?.SetValue(_game, widthBackingField.GetValue(newGame));
-            heightBackingField?.SetValue(_game, heightBackingField.GetValue(newGame));
-            movesBackingField?.SetValue(_game, 0);
-            pushesBackingField?.SetValue(_game, 0);
-            currentLevelBackingField?.SetValue(_game, level);
+            // Használjuk a megfelelő LoadLevel metódust
+            _game.LoadLevel(level);
 
             _hintSystem.Reset();
             _startTime = DateTime.Now;
