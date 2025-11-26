@@ -370,22 +370,25 @@ public class SokobanGame
     /// Deadlock (zsákutca) ellenőrzés.
     /// Kombinálja a sarok és fal-vonal deadlock detektálást.
     /// 
+    /// FONTOS: A logika konzervatív - csak akkor jelent deadlockot, ha biztosan
+    /// menthetetlen az állapot. Ha bizonytalan, inkább NEM tekinti deadlocknak.
+    /// 
     /// A szakdolgozatban hivatkozható: deadlock típusok elemzése Sokoban játékban.
     /// </summary>
     /// <param name="boxRow">A láda sor pozíciója</param>
     /// <param name="boxCol">A láda oszlop pozíciója</param>
-    /// <returns>True, ha a láda deadlock állapotban van</returns>
+    /// <returns>True, ha a láda biztosan deadlock állapotban van</returns>
     public bool CheckDeadlock(int boxRow, int boxCol)
     {
         // Ha a láda célhelyen van, nem deadlock
         if (IsGoal(boxRow, boxCol))
             return false;
 
-        // Sarok deadlock ellenőrzése
+        // Sarok deadlock ellenőrzése - ez a legbiztosabb deadlock típus
         if (IsCornerDeadlock(boxRow, boxCol))
             return true;
 
-        // Fal-vonal deadlock ellenőrzése
+        // Fal-vonal deadlock ellenőrzése - konzervatív megközelítéssel
         if (IsWallLineDeadlock(boxRow, boxCol))
             return true;
 
@@ -396,6 +399,9 @@ public class SokobanGame
     /// Sarok deadlock ellenőrzése.
     /// Egy láda sarokba szorult, ha két szomszédos oldalon (pl. fel és bal) fal van,
     /// és a láda nincs célhelyen.
+    /// 
+    /// Ez a legbiztosabb deadlock típus - ha egy láda sarokba kerül és nincs célhelyen,
+    /// akkor biztosan nem mozdítható ki.
     /// 
     /// A szakdolgozatban hivatkozható: klasszikus sarok-deadlock felismerés.
     /// </summary>
@@ -418,19 +424,24 @@ public class SokobanGame
     /// Ha egy láda olyan falvonal mentén áll (vízszintes vagy függőleges),
     /// ahol a vonalon sehol nincs cél (Goal), akkor az deadlock.
     /// 
+    /// FONTOS: A logika konzervatív - csak akkor jelent deadlockot, ha biztosan
+    /// nem mozdítható a láda a falvonal mentén, és nincs cél a vonalon.
+    /// 
     /// A szakdolgozatban hivatkozható: fal-menti deadlock felismerés,
     /// amely a sarok-deadlock kiterjesztése az egész falvonalra.
     /// </summary>
     /// <param name="boxRow">A láda sor pozíciója</param>
     /// <param name="boxCol">A láda oszlop pozíciója</param>
-    /// <returns>True, ha a láda fal-vonal deadlock állapotban van</returns>
+    /// <returns>True, ha a láda biztosan fal-vonal deadlock állapotban van</returns>
     public bool IsWallLineDeadlock(int boxRow, int boxCol)
     {
         // Ellenőrizzük vízszintes fal-vonalat (fel vagy le irányban van fal)
         bool upWall = IsWall(boxRow - 1, boxCol);
         bool downWall = IsWall(boxRow + 1, boxCol);
 
-        if (upWall || downWall)
+        // Csak akkor vizsgálunk vízszintes fal-vonalat, ha pontosan EGY oldalon van fal
+        // (XOR: ha mindkét oldalon fal van, az sarok-deadlock, amit az IsCornerDeadlock kezel)
+        if (upWall ^ downWall)
         {
             // Vizsgáljuk a vízszintes vonalat
             if (IsWallLineDeadlockHorizontal(boxRow, boxCol, upWall ? -1 : 1))
@@ -441,7 +452,9 @@ public class SokobanGame
         bool leftWall = IsWall(boxRow, boxCol - 1);
         bool rightWall = IsWall(boxRow, boxCol + 1);
 
-        if (leftWall || rightWall)
+        // Csak akkor vizsgálunk függőleges fal-vonalat, ha pontosan EGY oldalon van fal
+        // (XOR: ha mindkét oldalon fal van, az sarok-deadlock, amit az IsCornerDeadlock kezel)
+        if (leftWall ^ rightWall)
         {
             // Vizsgáljuk a függőleges vonalat
             if (IsWallLineDeadlockVertical(boxRow, boxCol, leftWall ? -1 : 1))
@@ -454,16 +467,22 @@ public class SokobanGame
     /// <summary>
     /// Vízszintes fal-vonal deadlock segédfüggvény.
     /// Ellenőrzi, hogy a láda vízszintes vonalán van-e cél.
+    /// 
+    /// FONTOS: Konzervatív megközelítés - csak akkor deadlock, ha:
+    /// 1. A teljes vízszintes szegmens mindkét végén fal van
+    /// 2. A fal folyamatosan fut a szegmens alatt/felett
+    /// 3. A szegmensen nincs célhely
     /// </summary>
     private bool IsWallLineDeadlockHorizontal(int boxRow, int boxCol, int wallDirection)
     {
-        // Balra keresés
+        // Balra keresés - a fal folyamatosan fut a szegmens mellett
         int leftEnd = boxCol;
         while (leftEnd > 0 && !IsWall(boxRow, leftEnd - 1) && IsWall(boxRow + wallDirection, leftEnd - 1))
         {
             leftEnd--;
         }
-        bool leftBlocked = IsWall(boxRow, leftEnd - 1) || IsWall(boxRow + wallDirection, leftEnd);
+        // Csak akkor blokkolva a bal oldal, ha fal van az úton
+        bool leftBlocked = IsWall(boxRow, leftEnd - 1);
 
         // Jobbra keresés
         int rightEnd = boxCol;
@@ -471,17 +490,25 @@ public class SokobanGame
         {
             rightEnd++;
         }
-        bool rightBlocked = IsWall(boxRow, rightEnd + 1) || IsWall(boxRow + wallDirection, rightEnd);
+        bool rightBlocked = IsWall(boxRow, rightEnd + 1);
 
         // Ha mindkét végén blokkolva van, ellenőrizzük, van-e cél a vonalon
         if (leftBlocked && rightBlocked)
         {
+            // Ellenőrizzük, hogy a fal folyamatos-e a teljes szegmens mellett
             for (int col = leftEnd; col <= rightEnd; col++)
             {
+                if (!IsWall(boxRow + wallDirection, col))
+                {
+                    // A fal megszakad - nem biztos deadlock
+                    return false;
+                }
                 if (IsGoal(boxRow, col))
+                {
                     return false; // Van cél a vonalon, nem deadlock
+                }
             }
-            return true; // Nincs cél a vonalon, deadlock
+            return true; // Nincs cél a vonalon és a fal folyamatos, deadlock
         }
 
         return false;
@@ -490,6 +517,11 @@ public class SokobanGame
     /// <summary>
     /// Függőleges fal-vonal deadlock segédfüggvény.
     /// Ellenőrzi, hogy a láda függőleges vonalán van-e cél.
+    /// 
+    /// FONTOS: Konzervatív megközelítés - csak akkor deadlock, ha:
+    /// 1. A teljes függőleges szegmens mindkét végén fal van
+    /// 2. A fal folyamatosan fut a szegmens mellett
+    /// 3. A szegmensen nincs célhely
     /// </summary>
     private bool IsWallLineDeadlockVertical(int boxRow, int boxCol, int wallDirection)
     {
@@ -499,7 +531,7 @@ public class SokobanGame
         {
             topEnd--;
         }
-        bool topBlocked = IsWall(topEnd - 1, boxCol) || IsWall(topEnd, boxCol + wallDirection);
+        bool topBlocked = IsWall(topEnd - 1, boxCol);
 
         // Lefelé keresés
         int bottomEnd = boxRow;
@@ -507,17 +539,25 @@ public class SokobanGame
         {
             bottomEnd++;
         }
-        bool bottomBlocked = IsWall(bottomEnd + 1, boxCol) || IsWall(bottomEnd, boxCol + wallDirection);
+        bool bottomBlocked = IsWall(bottomEnd + 1, boxCol);
 
         // Ha mindkét végén blokkolva van, ellenőrizzük, van-e cél a vonalon
         if (topBlocked && bottomBlocked)
         {
+            // Ellenőrizzük, hogy a fal folyamatos-e a teljes szegmens mellett
             for (int row = topEnd; row <= bottomEnd; row++)
             {
+                if (!IsWall(row, boxCol + wallDirection))
+                {
+                    // A fal megszakad - nem biztos deadlock
+                    return false;
+                }
                 if (IsGoal(row, boxCol))
+                {
                     return false; // Van cél a vonalon, nem deadlock
+                }
             }
-            return true; // Nincs cél a vonalon, deadlock
+            return true; // Nincs cél a vonalon és a fal folyamatos, deadlock
         }
 
         return false;

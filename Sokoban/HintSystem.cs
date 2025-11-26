@@ -43,16 +43,38 @@ public class HintSystem
     /// <summary>
     /// Hint generálása - megadja a következő ajánlott lépést.
     /// Növeli a hint számlálót a statisztikákhoz.
+    /// 
+    /// FONTOS: Ha a solver nem talál megoldást, megkülönbözteti a timeout-ot
+    /// a valódi deadlock-tól, és ennek megfelelő üzenetet ad.
     /// </summary>
     public string GenerateHint(SokobanGame game)
     {
         _hintCount++;
 
-        var nextMove = _solver.GetNextMove(game);
+        var (nextMove, solution) = _solver.GetNextMoveWithDetails(game);
 
         if (nextMove == null)
         {
-            return GetRandomMessage(Messages.DeadlockMessages) + "\nHasználd az 'U' billentyűt a visszalépéshez!";
+            // Különböztetjük meg a timeout-ot a kimerített állapottértől
+            if (solution.IsTimeout)
+            {
+                return "🤔 Jelenleg nem találok megoldást (időkorlát).\n" +
+                       "Próbálj visszalépni néhányat (U), vagy más stratégiát!\n" +
+                       $"💡 Tipp: {GetRandomMessage(Messages.StrategyTips)}";
+            }
+            else if (solution.IsExhausted)
+            {
+                // Az állapottér kimerült - valószínűleg nincs megoldás
+                return "⚠️ Úgy tűnik, ebből az állapotból nincs megoldás.\n" +
+                       "Használd az 'U' billentyűt a visszalépéshez!\n" +
+                       $"💡 Tipp: {GetRandomMessage(Messages.StrategyTips)}";
+            }
+            else
+            {
+                // Általános eset
+                return "🤔 Nem találok megoldást innen.\n" +
+                       "Próbálj visszalépni (U), vagy más utat keresni!";
+            }
         }
 
         var (move, totalMoves, pushCount) = nextMove.Value;
@@ -66,6 +88,9 @@ public class HintSystem
     /// <summary>
     /// Részletes állapot elemzés - átfogó információ a játék állapotáról.
     /// Nem növeli a hint számlálót, mert ez inkább elemzés, mint segítség.
+    /// 
+    /// FONTOS: Különbözteti meg a timeout-ot a kimerített állapottértől,
+    /// és ennek megfelelő üzenetet ad.
     /// </summary>
     public string GenerateDetailedHint(SokobanGame game)
     {
@@ -90,8 +115,23 @@ public class HintSystem
         }
         else
         {
-            lines.Add("⚠️ A pálya nem megoldható ebből az állapotból!");
-            lines.Add("Használd az 'U' billentyűt a visszalépéshez!");
+            // Különböztetjük meg a timeout-ot a kimerített állapottértől
+            if (solution.IsTimeout)
+            {
+                lines.Add("⏱️ A keresés időkorlátba ütközött.");
+                lines.Add("Ez nem jelenti, hogy nincs megoldás!");
+                lines.Add("Próbálj visszalépni (U), vagy folytasd a játékot.");
+            }
+            else if (solution.IsExhausted)
+            {
+                lines.Add("⚠️ Valószínűleg nincs megoldás ebből az állapotból.");
+                lines.Add("Használd az 'U' billentyűt a visszalépéshez!");
+            }
+            else
+            {
+                lines.Add("🤔 Nem találok megoldást innen.");
+                lines.Add("Próbálj visszalépni (U), vagy más utat keresni!");
+            }
         }
 
         lines.Add("");

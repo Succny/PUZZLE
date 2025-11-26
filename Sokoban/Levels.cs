@@ -106,17 +106,18 @@ public static class Levels
             "########"
         }),
 
-        // Level 5 - Kihívás
+        // Level 5 - Kihívás (klasszikus megoldható pálya)
         new Level("Mester próba", "Nehéz", new string[]
         {
-            " ######",
-            "##    #",
-            "# $ $ #",
-            "# #.# #",
-            "# $ . #",
-            "# .#  #",
-            "#@ .$ #",
-            "#######"
+            "  #####",
+            "###   #",
+            "#.@$  #",
+            "### $.#",
+            "#.##$ #",
+            "# # . ##",
+            "#$  $$.#",
+            "#   .  #",
+            "########"
         })
     };
 }

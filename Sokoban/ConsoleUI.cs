@@ -23,6 +23,21 @@ namespace Sokoban;
 /// </summary>
 public class ConsoleUI
 {
+    /// <summary>
+    /// A teljes UI keretrendszer szélessége (fix érték a konzisztens megjelenítéshez)
+    /// </summary>
+    private const int UiWidth = 65;
+
+    /// <summary>
+    /// A játéktér belső szélessége (keret és padding nélkül)
+    /// </summary>
+    private const int GameAreaWidth = 61;
+
+    /// <summary>
+    /// Minimális játéktér magasság (ha a pálya kisebb, üres sorokkal töltjük ki)
+    /// </summary>
+    private const int MinGameAreaHeight = 10;
+
     private readonly SokobanGame _game;
     private readonly HintSystem _hintSystem;
     private int _currentLevelIndex;
@@ -211,8 +226,12 @@ public class ConsoleUI
     /// </summary>
     private void RenderGame()
     {
-        // Középre igazítás
-        int padding = (63 - _game.Width * 2) / 2;
+        // A játéktér szélessége karakterekben (minden csempe 2 karakter széles)
+        int gameWidth = _game.Width * 2;
+        
+        // Középre igazítás - biztosítjuk, hogy a padding nem negatív
+        int padding = Math.Max(0, (GameAreaWidth - gameWidth) / 2);
+        int rightPadding = Math.Max(0, GameAreaWidth - padding - gameWidth);
 
         for (int row = 0; row < _game.Height; row++)
         {
@@ -225,14 +244,16 @@ public class ConsoleUI
                 RenderTile(tile);
             }
 
-            Console.Write(new string(' ', 63 - padding - _game.Width * 2));
+            Console.Write(new string(' ', rightPadding));
             Console.WriteLine("║");
         }
 
-        // Üres sorok kitöltése
-        for (int i = _game.Height; i < 10; i++)
+        // Üres sorok kitöltése a minimális magasságig
+        for (int i = _game.Height; i < MinGameAreaHeight; i++)
         {
-            Console.WriteLine("║                                                               ║");
+            Console.Write("║  ");
+            Console.Write(new string(' ', GameAreaWidth));
+            Console.WriteLine("║");
         }
     }
 
