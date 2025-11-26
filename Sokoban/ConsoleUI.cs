@@ -1,7 +1,25 @@
 namespace Sokoban;
 
+// ============================================================================
+// UI LAYER / PREZENTÁCIÓS RÉTEG
+// Ez a fájl a konzolos felhasználói felületet tartalmazza.
+// A szakdolgozatban hivatkozható: UI/Prezentáció réteg.
+// ============================================================================
+
 /// <summary>
-/// Konzol alapú felhasználói felület
+/// [UI Layer]
+/// Konzol alapú felhasználói felület.
+/// 
+/// Felelősségek:
+/// - Játéktér vizuális megjelenítése
+/// - Felhasználói bemenet kezelése
+/// - AI üzenetek megjelenítése
+/// - Játék statisztikák mutatása
+/// 
+/// A szakdolgozatban hivatkozható:
+/// - Konzol UI implementáció
+/// - Színes karakter-alapú megjelenítés
+/// - Input kezelés és játékvezérlés
 /// </summary>
 public class ConsoleUI
 {
@@ -32,7 +50,7 @@ public class ConsoleUI
     }
 
     /// <summary>
-    /// Játék futtatása
+    /// Játék futtatása - fő ciklus.
     /// </summary>
     public void Run()
     {
@@ -48,22 +66,43 @@ public class ConsoleUI
         Console.CursorVisible = true;
     }
 
+    #region Rendering Methods
+
     /// <summary>
-    /// Képernyő renderelése
+    /// Képernyő renderelése - összeállítja a teljes UI-t.
+    /// A metódus kisebb, jól elkülöníthető részekre van bontva a könnyebb olvashatóság érdekében.
     /// </summary>
     private void Render()
     {
         Console.SetCursorPosition(0, 0);
 
-        // Cím
+        RenderHeader();
+        RenderLevelSelector();
+        RenderGameArea();
+        RenderStats();
+        RenderAIPanel();
+        RenderMessagePanel();
+        RenderControls();
+    }
+
+    /// <summary>
+    /// Fejléc renderelése - cím és logó.
+    /// </summary>
+    private void RenderHeader()
+    {
         Console.ForegroundColor = ConsoleColor.Yellow;
         Console.WriteLine("╔═══════════════════════════════════════════════════════════════╗");
         Console.WriteLine("║               📦 SOKOBAN - AI Hint Rendszerrel                ║");
         Console.WriteLine("║         Kooperatív Puzzle Játék (C# Verzió)                   ║");
         Console.WriteLine("╠═══════════════════════════════════════════════════════════════╣");
         Console.ResetColor();
+    }
 
-        // Pálya választó
+    /// <summary>
+    /// Pálya választó sáv renderelése.
+    /// </summary>
+    private void RenderLevelSelector()
+    {
         Console.Write("║  Pályák: ");
         for (int i = 0; i < Levels.AllLevels.Length; i++)
         {
@@ -83,11 +122,21 @@ public class ConsoleUI
         Console.ForegroundColor = ConsoleColor.Yellow;
         Console.WriteLine("╠═══════════════════════════════════════════════════════════════╣");
         Console.ResetColor();
+    }
 
-        // Játéktér
+    /// <summary>
+    /// Játéktér renderelése - térkép és csempék.
+    /// </summary>
+    private void RenderGameArea()
+    {
         RenderGame();
+    }
 
-        // Statisztikák
+    /// <summary>
+    /// Statisztikák panel renderelése.
+    /// </summary>
+    private void RenderStats()
+    {
         TimeSpan elapsed = DateTime.Now - _startTime;
         Console.ForegroundColor = ConsoleColor.Yellow;
         Console.WriteLine("╠═══════════════════════════════════════════════════════════════╣");
@@ -109,15 +158,25 @@ public class ConsoleUI
         Console.Write($"Ládák: {_game.BoxesOnGoalCount}/{_game.BoxCount}");
         Console.ResetColor();
         Console.WriteLine("    ║");
+    }
 
-        // AI Üzenet
+    /// <summary>
+    /// AI asszisztens fejléc renderelése.
+    /// </summary>
+    private void RenderAIPanel()
+    {
         Console.ForegroundColor = ConsoleColor.Yellow;
         Console.WriteLine("╠═══════════════════════════════════════════════════════════════╣");
         Console.WriteLine("║  🤖 AI Asszisztens                                            ║");
         Console.WriteLine("╠═══════════════════════════════════════════════════════════════╣");
         Console.ResetColor();
+    }
 
-        // Üzenet megjelenítése (max 3 sor)
+    /// <summary>
+    /// AI üzenetek panel renderelése.
+    /// </summary>
+    private void RenderMessagePanel()
+    {
         var messageLines = _lastMessage.Split('\n');
         for (int i = 0; i < 4; i++)
         {
@@ -128,8 +187,13 @@ public class ConsoleUI
             Console.ResetColor();
             Console.WriteLine("║");
         }
+    }
 
-        // Irányítás
+    /// <summary>
+    /// Irányítás panel renderelése.
+    /// </summary>
+    private void RenderControls()
+    {
         Console.ForegroundColor = ConsoleColor.Yellow;
         Console.WriteLine("╠═══════════════════════════════════════════════════════════════╣");
         Console.WriteLine("║  🎮 Irányítás                                                 ║");
@@ -143,7 +207,7 @@ public class ConsoleUI
     }
 
     /// <summary>
-    /// Játéktér renderelése
+    /// Játéktér (térkép) renderelése.
     /// </summary>
     private void RenderGame()
     {
@@ -173,7 +237,7 @@ public class ConsoleUI
     }
 
     /// <summary>
-    /// Egy csempe renderelése
+    /// Egy csempe (tile) renderelése színekkel.
     /// </summary>
     private void RenderTile(char tile)
     {
@@ -230,8 +294,17 @@ public class ConsoleUI
         Console.ResetColor();
     }
 
+    #endregion
+
+    #region Input Handling
+
     /// <summary>
-    /// Bemenet kezelése
+    /// Bemenet kezelése - billentyűleütések feldolgozása.
+    /// A bemenetek logikailag csoportosítva:
+    /// - Mozgás (nyilak, WASD)
+    /// - Undo (U, Backspace)
+    /// - Hint (H, N)
+    /// - Játékvezérlés (R, 1-5, Q, Esc)
     /// </summary>
     private void HandleInput()
     {
@@ -243,30 +316,61 @@ public class ConsoleUI
 
         var key = Console.ReadKey(true);
 
+        // Mozgás kezelése
+        if (HandleMovementInput(key))
+            return;
+
+        // Undo kezelése
+        if (HandleUndoInput(key))
+            return;
+
+        // Hint kezelése
+        if (HandleHintInput(key))
+            return;
+
+        // Játékvezérlés kezelése
+        HandleGameControlInput(key);
+    }
+
+    /// <summary>
+    /// Mozgás billentyűk kezelése.
+    /// </summary>
+    /// <returns>True, ha mozgás történt</returns>
+    private bool HandleMovementInput(ConsoleKeyInfo key)
+    {
         switch (key.Key)
         {
-            // Mozgás
             case ConsoleKey.UpArrow:
             case ConsoleKey.W:
                 MakeMove(-1, 0);
-                break;
+                return true;
 
             case ConsoleKey.DownArrow:
             case ConsoleKey.S:
                 MakeMove(1, 0);
-                break;
+                return true;
 
             case ConsoleKey.LeftArrow:
             case ConsoleKey.A:
                 MakeMove(0, -1);
-                break;
+                return true;
 
             case ConsoleKey.RightArrow:
             case ConsoleKey.D:
                 MakeMove(0, 1);
-                break;
+                return true;
+        }
+        return false;
+    }
 
-            // Undo
+    /// <summary>
+    /// Undo billentyűk kezelése.
+    /// </summary>
+    /// <returns>True, ha undo történt</returns>
+    private bool HandleUndoInput(ConsoleKeyInfo key)
+    {
+        switch (key.Key)
+        {
             case ConsoleKey.U:
             case ConsoleKey.Backspace:
                 if (_game.Undo())
@@ -277,18 +381,37 @@ public class ConsoleUI
                 {
                     _lastMessage = "Nincs több visszalépési lehetőség.";
                 }
-                break;
+                return true;
+        }
+        return false;
+    }
 
-            // Hint
+    /// <summary>
+    /// Hint billentyűk kezelése.
+    /// </summary>
+    /// <returns>True, ha hint kérés történt</returns>
+    private bool HandleHintInput(ConsoleKeyInfo key)
+    {
+        switch (key.Key)
+        {
             case ConsoleKey.H:
                 _lastMessage = _hintSystem.GenerateDetailedHint(_game);
-                break;
+                return true;
 
-            // Következő lépés
             case ConsoleKey.N:
                 _lastMessage = _hintSystem.GenerateHint(_game);
-                break;
+                return true;
+        }
+        return false;
+    }
 
+    /// <summary>
+    /// Játékvezérlés billentyűk kezelése (restart, pályaváltás, kilépés).
+    /// </summary>
+    private void HandleGameControlInput(ConsoleKeyInfo key)
+    {
+        switch (key.Key)
+        {
             // Újraindítás
             case ConsoleKey.R:
                 _game.Restart();
@@ -333,8 +456,12 @@ public class ConsoleUI
         }
     }
 
+    #endregion
+
+    #region Game Actions
+
     /// <summary>
-    /// Lépés végrehajtása
+    /// Lépés végrehajtása.
     /// </summary>
     private void MakeMove(int dRow, int dCol)
     {
@@ -359,7 +486,7 @@ public class ConsoleUI
     }
 
     /// <summary>
-    /// Pálya betöltése
+    /// Pálya betöltése index alapján.
     /// </summary>
     private void LoadLevel(int index)
     {
@@ -368,12 +495,12 @@ public class ConsoleUI
             _currentLevelIndex = index;
             var level = Levels.AllLevels[index];
             
-            // Használjuk a megfelelő LoadLevel metódust
             _game.LoadLevel(level);
-
             _hintSystem.Reset();
             _startTime = DateTime.Now;
             _lastMessage = _hintSystem.GetWelcomeMessage(level, index + 1);
         }
     }
+
+    #endregion
 }
