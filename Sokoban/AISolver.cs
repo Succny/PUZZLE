@@ -79,6 +79,13 @@ public class SolutionResult
 public class AISolver
 {
     /// <summary>
+    /// Büntetés érték deadlock állapotokhoz a heurisztikában.
+    /// Nagyon nagy érték, ami biztosítja, hogy a deadlock állapotok
+    /// ne kerüljenek a prioritási sor elejére.
+    /// </summary>
+    private const int DeadlockPenalty = int.MaxValue / 2;
+
+    /// <summary>
     /// Maximális iterációszám a keresés során.
     /// A futási idő korlátozására szolgál, hogy elkerüljük a túl hosszú számításokat.
     /// Alapértelmezett érték: 50000.
@@ -155,7 +162,7 @@ public class AISolver
             // adjunk nagyon nagy büntetést, hogy ez az állapot ne legyen előnyös
             if (IsDeadlock(game, box.Row, box.Col))
             {
-                return int.MaxValue / 2; // Nagyon nagy érték, de nem overflow
+                return DeadlockPenalty;
             }
         }
 

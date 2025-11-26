@@ -68,6 +68,12 @@ public class GameState
 /// </summary>
 public class SokobanGame
 {
+    /// <summary>
+    /// Maximális undo történet mérete.
+    /// A memória korlátozására szolgál, ~1000 visszalépés tárolása.
+    /// </summary>
+    private const int MaxHistorySize = 1000;
+
     private char[,] _map;
     private char[,] _originalMap;
     private int _playerRow;
@@ -314,7 +320,6 @@ public class SokobanGame
     /// </summary>
     private void TrimHistory()
     {
-        const int MaxHistorySize = 1000;
         if (_history.Count > MaxHistorySize)
         {
             var tempList = _history.ToList();
