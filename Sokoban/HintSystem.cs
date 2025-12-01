@@ -41,15 +41,40 @@ public class HintSystem
     }
 
     /// <summary>
-    /// Hint generálása - megadja a következő ajánlott lépést.
+    /// Hint generálása - megadja a következő ajánlott lépést (H gomb - Segítség).
     /// Növeli a hint számlálót a statisztikákhoz.
     /// 
-    /// FONTOS: Ha a solver nem talál megoldást, megkülönbözteti a timeout-ot
+    /// FONTOS: Ha a pálya már megoldott, jelzi a játékosnak és javasolja a következő pályát.
+    /// Ha a solver nem talál megoldást, megkülönbözteti a timeout-ot
     /// a valódi deadlock-tól, és ennek megfelelő üzenetet ad.
     /// </summary>
-    public string GenerateHint(SokobanGame game)
+    public string GenerateHint(SokobanGame game, int currentLevelIndex = -1)
     {
         _hintCount++;
+
+        // Ellenőrizzük, hogy a pálya már megoldott-e
+        if (game.IsSolved())
+        {
+            // Van-e következő pálya?
+            if (currentLevelIndex >= 0 && currentLevelIndex < Levels.AllLevels.Length - 1)
+            {
+                int nextLevel = currentLevelIndex + 2; // +2 mert 1-indexelt a megjelenítés
+                return $"🎉 Gratulálok! A pálya már teljesítve van!\n" +
+                       $"Nyomd meg a '{nextLevel}' gombot a következő pályához,\n" +
+                       $"vagy válassz egy másik pályát (1-{Levels.AllLevels.Length})!";
+            }
+            else if (currentLevelIndex == Levels.AllLevels.Length - 1)
+            {
+                return $"🏆 Fantasztikus! Az utolsó pályát is teljesítetted!\n" +
+                       $"Válassz egy másik pályát (1-{Levels.AllLevels.Length}),\n" +
+                       $"vagy nyomd meg 'R'-t az újrakezdéshez!";
+            }
+            else
+            {
+                return "🎉 Gratulálok! A pálya már teljesítve van!\n" +
+                       "Válassz egy új pályát (1-5) vagy nyomd meg 'R'-t!";
+            }
+        }
 
         var (nextMove, solution) = _solver.GetNextMoveWithDetails(game);
 
@@ -86,13 +111,15 @@ public class HintSystem
     }
 
     /// <summary>
-    /// Részletes állapot elemzés - átfogó információ a játék állapotáról.
+    /// Részletes állapot elemzés (N gomb - iNfo/aNalízis).
+    /// Átfogó információ a játék állapotáról.
     /// Nem növeli a hint számlálót, mert ez inkább elemzés, mint segítség.
     /// 
-    /// FONTOS: Különbözteti meg a timeout-ot a kimerített állapottértől,
+    /// FONTOS: Ha a pálya már megoldott, jelzi a játékosnak és javasolja a következő pályát.
+    /// Különbözteti meg a timeout-ot a kimerített állapottértől,
     /// és ennek megfelelő üzenetet ad.
     /// </summary>
-    public string GenerateDetailedHint(SokobanGame game)
+    public string GenerateDetailedHint(SokobanGame game, int currentLevelIndex = -1)
     {
         int boxesOnGoal = game.BoxesOnGoalCount;
         int totalBoxes = game.BoxCount;
@@ -106,6 +133,22 @@ public class HintSystem
             $"• Eddigi tolások: {game.Pushes}",
             ""
         };
+
+        // Ellenőrizzük, hogy a pálya már megoldott-e
+        if (game.IsSolved())
+        {
+            lines.Add("🎉 A pálya teljesítve van!");
+            if (currentLevelIndex >= 0 && currentLevelIndex < Levels.AllLevels.Length - 1)
+            {
+                int nextLevel = currentLevelIndex + 2;
+                lines.Add($"Nyomd meg a '{nextLevel}' gombot a következő pályához!");
+            }
+            else if (currentLevelIndex == Levels.AllLevels.Length - 1)
+            {
+                lines.Add("🏆 Ez volt az utolsó pálya! Gratulálok!");
+            }
+            return string.Join("\n", lines);
+        }
 
         var solution = _solver.Solve(game);
         if (solution.Success)

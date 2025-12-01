@@ -98,8 +98,8 @@ dotnet publish -c Release -r win-x64 --self-contained
 | Billentyű | Funkció |
 |-----------|---------|
 | ↑ ↓ ← → / WASD | Mozgás |
-| H | Részletes hint kérése |
-| N | Következő lépés megmutatása |
+| H | Segítség - következő lépés megmutatása |
+| N | Állapot elemzés - részletes információ |
 | U / Backspace | Visszalépés (Undo) |
 | R | Pálya újraindítása |
 | 1-5 | Pálya választás |
@@ -108,8 +108,8 @@ dotnet publish -c Release -r win-x64 --self-contained
 ## 🤖 AI Funkciók
 
 ### Hint Rendszer
-- **H - Részletes Hint**: Állapot elemzés, megoldhatóság ellenőrzése
-- **N - Következő lépés**: Megmutatja az optimális következő lépést
+- **H - Segítség**: Megmutatja az optimális következő lépést, vagy jelzi ha a pálya teljesítve van
+- **N - Állapot Elemzés**: Részletes információ a játék állapotáról, megoldhatóság ellenőrzése
 
 ### AI Képességek
 - **A* Megoldó Algoritmus**: Megtalálja az optimális megoldást
