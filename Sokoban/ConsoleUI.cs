@@ -214,8 +214,9 @@ public class ConsoleUI
         Console.WriteLine("║  🎮 Irányítás                                                 ║");
         Console.WriteLine("╠═══════════════════════════════════════════════════════════════╣");
         Console.ResetColor();
-        Console.WriteLine("║  ↑↓←→/WASD: Mozgás  │  H: Hint  │  U: Visszalépés            ║");
+        Console.WriteLine("║  ↑↓←→/WASD: Mozgás  │  H: Segítség │  N: Elemzés             ║");
         Console.WriteLine("║  R: Újraindítás     │  1-5: Pálya választás  │  Q: Kilépés   ║");
+        Console.WriteLine("║  U/Backspace: Visszalépés                                    ║");
         Console.ForegroundColor = ConsoleColor.Yellow;
         Console.WriteLine("╚═══════════════════════════════════════════════════════════════╝");
         Console.ResetColor();
@@ -409,6 +410,8 @@ public class ConsoleUI
 
     /// <summary>
     /// Hint billentyűk kezelése.
+    /// H = Help (segítség) - következő lépés javaslata
+    /// N = iNfo/aNalízis - állapot elemzés
     /// </summary>
     /// <returns>True, ha hint kérés történt</returns>
     private bool HandleHintInput(ConsoleKeyInfo key)
@@ -416,11 +419,13 @@ public class ConsoleUI
         switch (key.Key)
         {
             case ConsoleKey.H:
-                _lastMessage = _hintSystem.GenerateDetailedHint(_game);
+                // H = Help - következő lépés javaslata (segítség)
+                _lastMessage = _hintSystem.GenerateHint(_game, _currentLevelIndex);
                 return true;
 
             case ConsoleKey.N:
-                _lastMessage = _hintSystem.GenerateHint(_game);
+                // N = iNfo/aNalízis - állapot elemzés
+                _lastMessage = _hintSystem.GenerateDetailedHint(_game, _currentLevelIndex);
                 return true;
         }
         return false;
@@ -499,9 +504,15 @@ public class ConsoleUI
             if (result.Solved)
             {
                 TimeSpan elapsed = DateTime.Now - _startTime;
+                // Következő pálya számának meghatározása
+                int nextLevelNum = _currentLevelIndex + 2; // +2 mert 1-indexelt a megjelenítés
+                string nextLevelHint = _currentLevelIndex < Levels.AllLevels.Length - 1
+                    ? $"Nyomj '{nextLevelNum}'-t a következő pályához!"
+                    : "🏆 Ez volt az utolsó pálya!";
+                
                 _lastMessage = $"🎉 GRATULÁLOK! Pálya teljesítve!\n" +
                                $"Lépések: {_game.Moves}  │  Tolások: {_game.Pushes}  │  Idő: {elapsed:mm\\:ss}\n" +
-                               $"Nyomj N-t a következő pályához!";
+                               nextLevelHint;
             }
         }
     }
