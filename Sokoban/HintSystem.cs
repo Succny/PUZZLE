@@ -71,8 +71,8 @@ public class HintSystem
             }
             else
             {
-                return "🎉 Gratulálok! A pálya már teljesítve van!\n" +
-                       "Válassz egy új pályát (1-5) vagy nyomd meg 'R'-t!";
+                return $"🎉 Gratulálok! A pálya már teljesítve van!\n" +
+                       $"Válassz egy új pályát (1-{Levels.AllLevels.Length}) vagy nyomd meg 'R'-t!";
             }
         }
 
