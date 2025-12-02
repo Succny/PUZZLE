@@ -24,7 +24,7 @@ namespace Sokoban;
 public static class ConsoleSizing
 {
     /// <summary>
-    /// Fix méretű konzol beállítása a pályaméret és HUD alapján.
+    /// Fix méretű konzol beállítása a megadott méretek alapján.
     /// 
     /// A metódus biztosítja, hogy:
     /// 1. A buffer méret pontosan megegyezik az ablak mérettel (nincs scrollbar)
@@ -34,16 +34,14 @@ public static class ConsoleSizing
     /// FONTOS: Előbb a buffer méretet kell beállítani, aztán az ablak méretet,
     /// különben kivétel keletkezhet.
     /// </summary>
-    /// <param name="playfieldWidth">A pálya szélessége karaktercellákban</param>
-    /// <param name="playfieldHeight">A pálya magassága karaktercellákban</param>
-    /// <param name="hudExtraWidth">HUD/keretek extra szélessége</param>
-    /// <param name="hudExtraHeight">HUD/keretek extra magassága</param>
+    /// <param name="totalWidth">A teljes konzol szélesség karaktercellákban (UI keretekkel együtt)</param>
+    /// <param name="totalHeight">A teljes konzol magasság karaktercellákban (UI keretekkel együtt)</param>
     /// <returns>True, ha sikerült beállítani a méretet</returns>
-    public static bool ApplyFixedSize(int playfieldWidth, int playfieldHeight, int hudExtraWidth = 0, int hudExtraHeight = 0)
+    public static bool ApplyFixedSize(int totalWidth, int totalHeight)
     {
-        // Teljes terület: pálya + HUD/keretek ha vannak
-        int totalWidth = Math.Max(1, playfieldWidth + hudExtraWidth);
-        int totalHeight = Math.Max(1, playfieldHeight + hudExtraHeight);
+        // Biztonsági minimum
+        int width = Math.Max(1, totalWidth);
+        int height = Math.Max(1, totalHeight);
 
         try
         {
@@ -56,7 +54,7 @@ public static class ConsoleSizing
             // Platformfüggő méretbeállítás
             if (OperatingSystem.IsWindows())
             {
-                return ApplyWindowsFixedSize(totalWidth, totalHeight);
+                return ApplyWindowsFixedSize(width, height);
             }
 
             // Linux/macOS esetén általában nem kell méretet állítani
@@ -100,13 +98,24 @@ public static class ConsoleSizing
             catch
             {
                 // Ha kisebb a window, előbb zsugorítsuk ablakot minimálisra, majd buffer, majd ablak
-                int safeW = Math.Min(Console.WindowWidth, targetWidth);
-                int safeH = Math.Min(Console.WindowHeight, targetHeight);
-                safeW = Math.Max(1, safeW);
-                safeH = Math.Max(1, safeH);
-                
-                Console.SetWindowSize(safeW, safeH);
-                Console.SetBufferSize(targetWidth, targetHeight);
+                // A property hozzáféréseket is try-catch-be csomagoljuk, mert
+                // bizonyos terminál környezetekben ezek is kivételt dobhatnak
+                try
+                {
+                    int safeW = Math.Min(Console.WindowWidth, targetWidth);
+                    int safeH = Math.Min(Console.WindowHeight, targetHeight);
+                    safeW = Math.Max(1, safeW);
+                    safeH = Math.Max(1, safeH);
+                    
+                    Console.SetWindowSize(safeW, safeH);
+                    Console.SetBufferSize(targetWidth, targetHeight);
+                }
+                catch
+                {
+                    // Ha a property hozzáférések is sikertelenek, próbálunk minimális méretet beállítani
+                    Console.SetWindowSize(1, 1);
+                    Console.SetBufferSize(targetWidth, targetHeight);
+                }
             }
 
             // Most az ablak mérete pontosan egyezzen a bufferrel
