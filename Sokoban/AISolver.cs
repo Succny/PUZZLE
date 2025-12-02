@@ -20,19 +20,22 @@ public class MoveDirection
     public string Name { get; }
     /// <summary>Nyíl karakter vizuális megjelenítéshez</summary>
     public string Arrow { get; }
+    /// <summary>Magyar irányhatározó rag (-ra/-fele)</summary>
+    public string DirectionalSuffix { get; }
 
-    public MoveDirection(int dRow, int dCol, string name, string arrow)
+    public MoveDirection(int dRow, int dCol, string name, string arrow, string directionalSuffix)
     {
         DRow = dRow;
         DCol = dCol;
         Name = name;
         Arrow = arrow;
+        DirectionalSuffix = directionalSuffix;
     }
 
-    public static readonly MoveDirection Up = new(-1, 0, "fel", "↑");
-    public static readonly MoveDirection Down = new(1, 0, "le", "↓");
-    public static readonly MoveDirection Left = new(0, -1, "bal", "←");
-    public static readonly MoveDirection Right = new(0, 1, "jobb", "→");
+    public static readonly MoveDirection Up = new(-1, 0, "fel", "↑", "fele");
+    public static readonly MoveDirection Down = new(1, 0, "le", "↓", "fele");
+    public static readonly MoveDirection Left = new(0, -1, "bal", "←", "ra");
+    public static readonly MoveDirection Right = new(0, 1, "jobb", "→", "ra");
 
     public static readonly MoveDirection[] All = { Up, Down, Left, Right };
 }
