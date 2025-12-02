@@ -1,7 +1,8 @@
 # 📦 SOKOBAN - Kooperatív AI Puzzle Játék
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![.NET](https://img.shields.io/badge/.NET-8.0-blue.svg)](https://dotnet.microsoft.com/)
+[![.NET](https://img.shields.io/badge/.NET-10.0-blue.svg)](https://dotnet.microsoft.com/)
+[![Build and Test](https://github.com/Succny/PUZZLE/actions/workflows/dotnet.yml/badge.svg)](https://github.com/Succny/PUZZLE/actions/workflows/dotnet.yml)
 
 Kooperatív Sokoban puzzle játék mesterséges intelligencia hint-rendszerrel.
 
@@ -19,10 +20,34 @@ A Sokoban egy klasszikus logikai játék, ahol a játékosnak ládákat kell a c
 - ↩️ **Undo Funkció**: Bármikor visszaléphetsz (max ~1000 lépés)
 - 📊 **Állapot Elemzés**: A játék folyamatosan elemzi a helyzetet
 - 🖥️ **Konzol Felület**: Tiszta, áttekinthető konzol UI
+- 🌐 **Lokalizáció**: Magyar és angol nyelv támogatás
+- 📈 **Telemetria**: Játékesemények nyomon követése
 
 ## 🏗️ Architektúra
 
-A projekt háromrétegű architektúrát követ:
+A projekt rétegezett, tiszta architektúrát (Clean Architecture) követ:
+
+### Domain Réteg (`Sokoban/Domain/`)
+Tiszta üzleti logika, interfészek és események:
+- **IHintProvider**: Hint algoritmus interfész (Strategy pattern)
+- **ILevelLoader**: Pálya betöltő interfész
+- **ITelemetryClient**: Telemetria interfész
+- **ILocalization**: Lokalizációs interfész
+- **GameEvents**: Központi eseménykezelés (Observer pattern)
+- **HintRecommendation, HintOptions**: Hint domain modellek
+
+### Application Réteg (`Sokoban/Application/`)
+Szolgáltatások és use case-ek:
+- **DefaultHintProvider**: Alapértelmezett hint algoritmus (AISolver wrapper)
+- **CachedHintProvider**: Cache-elt hint provider (Decorator pattern)
+- **AsyncHintService**: Aszinkron hint számítás időkerettel
+
+### Infrastructure Réteg (`Sokoban/Infrastructure/`)
+Külső rendszerek és adatbetöltés:
+- **JsonLocalization**: Kulcs-alapú lokalizáció HU/EN támogatással
+- **ConsoleTelemetryClient**: Telemetria implementáció
+- **TelemetryIntegration**: Játékesemények automatikus naplózása
+- **DefaultLevelLoader**: Pálya betöltő implementáció
 
 ### Core Réteg (Játékmotor)
 - **SokobanGame**: Játéklogika, állapotkezelés, mozgások
@@ -55,7 +80,7 @@ A projekt háromrétegű architektúrát követ:
 
 ### Követelmények
 
-- [.NET 8.0 SDK](https://dotnet.microsoft.com/download/dotnet/8.0) vagy újabb
+- [.NET 10.0 SDK](https://dotnet.microsoft.com/download/dotnet/10.0) vagy újabb
 
 ### Futtatás Visual Studio-ból
 
@@ -130,26 +155,73 @@ A HintSystem osztály számolja, hányszor kért a játékos segítséget (`Hint
 
 ```
 PUZZLE/
+├── .github/
+│   └── workflows/
+│       └── dotnet.yml          # CI/CD workflow
 ├── Sokoban/
-│   ├── Program.cs          # [UI] Belépési pont
-│   ├── ConsoleUI.cs        # [UI] Konzol felhasználói felület
-│   ├── SokobanGame.cs      # [Core] Játék logika
-│   ├── Levels.cs           # [Core] Pályák és csempék definíciói
-│   ├── AISolver.cs         # [AI] AI megoldó algoritmus
-│   ├── HintSystem.cs       # [AI] Hint rendszer
-│   ├── Messages.cs         # [AI] Lokalizálható üzenetek
-│   └── Sokoban.csproj      # Projekt fájl
-├── Sokoban.sln             # Solution fájl
-├── README.md               # Ez a fájl
-└── .gitignore              # Git ignore szabályok
+│   ├── Domain/                 # Tiszta üzleti logika
+│   │   ├── Interfaces.cs       # IHintProvider, ILocalization, stb.
+│   │   └── GameEvents.cs       # Központi események
+│   ├── Application/            # Szolgáltatások
+│   │   ├── HintProviders.cs    # Hint provider implementációk
+│   │   └── AsyncHintService.cs # Aszinkron hint számítás
+│   ├── Infrastructure/         # Külső rendszerek
+│   │   ├── Localization.cs     # HU/EN lokalizáció
+│   │   ├── Telemetry.cs        # Telemetria és analitika
+│   │   └── LevelLoader.cs      # Pálya betöltés
+│   ├── Program.cs              # [UI] Belépési pont
+│   ├── ConsoleUI.cs            # [UI] Konzol felhasználói felület
+│   ├── SokobanGame.cs          # [Core] Játék logika
+│   ├── Levels.cs               # [Core] Pályák és csempék definíciói
+│   ├── AISolver.cs             # [AI] AI megoldó algoritmus
+│   ├── HintSystem.cs           # [AI] Hint rendszer
+│   ├── Messages.cs             # [AI] Lokalizálható üzenetek
+│   └── Sokoban.csproj          # Projekt fájl
+├── Sokoban.Tests/              # Egységtesztek
+│   ├── SokobanGameTests.cs     # Játéklogika tesztek
+│   ├── AISolverTests.cs        # AI algoritmus tesztek
+│   ├── ArchitectureTests.cs    # Architektúra komponens tesztek
+│   └── Sokoban.Tests.csproj    # Teszt projekt fájl
+├── Sokoban.sln                 # Solution fájl
+├── README.md                   # Ez a fájl
+└── .gitignore                  # Git ignore szabályok
 ```
+
+## 🧪 Tesztelés
+
+A projekt xUnit alapú egységteszteket tartalmaz:
+
+```bash
+# Tesztek futtatása
+dotnet test
+
+# Tesztek részletes kimenettel
+dotnet test --verbosity normal
+
+# Coverage riport generálása
+dotnet test --collect:"XPlat Code Coverage"
+```
+
+## 🔄 CI/CD
+
+A projekt GitHub Actions-t használ folyamatos integrációhoz:
+- Automatikus build minden push és pull request esetén
+- Egységtesztek futtatása
+- Teszt és coverage riportok
 
 ## 🧠 Technológiai Háttér
 
 ### Használt Technológiák
 - **C# 12**: Modern C# nyelvi funkciók
-- **.NET 8.0**: Cross-platform futtatókörnyezet
+- **.NET 10.0**: Cross-platform futtatókörnyezet
+- **xUnit**: Egységtesztelési keretrendszer
 - **Console Application**: Konzol alapú felület
+
+### Design Patternek
+- **Strategy Pattern**: IHintProvider interfész különböző hint algoritmusokhoz
+- **Decorator Pattern**: CachedHintProvider cache-eléssel bővíti az alapot
+- **Observer Pattern**: GameEvents központi eseménykezelés
+- **Repository Pattern**: ILevelLoader pálya betöltéshez
 
 ### AI Algoritmusok
 - **A* keresés**: Heurisztikus optimalizálás prioritásos sorral
@@ -165,6 +237,7 @@ A projekt a következő területeket érinti:
 - **Ember-Gép Interakció (HCI)**: Felhasználói élmény, intelligens segítségnyújtás
 - **Játékfejlesztés**: Game design, UX patterns
 - **Kombinatorikus Optimalizálás**: NP-nehéz problémák
+- **Szoftverarchitektúra**: Rétegezett architektúra, SOLID elvek
 
 ### Miért Sokoban?
 
