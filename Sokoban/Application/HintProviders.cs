@@ -122,7 +122,7 @@ public sealed class DefaultHintProvider : IHintProvider
             return null;
         }
         
-        string explanation = options.Level switch
+        string? explanation = options.Level switch
         {
             HintLevel.Soft => $"Próbálj {move.Direction.Name} irányba menni",
             HintLevel.Medium => move.Pushed
