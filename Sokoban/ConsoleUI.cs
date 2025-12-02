@@ -89,7 +89,9 @@ public class ConsoleUI
     /// </summary>
     private void Render()
     {
-        Console.SetCursorPosition(0, 0);
+        // Kurzor pozíció visszaállítása a stabil rendereléshez
+        // Ez megakadályozza a "ugrálást" PowerShell/Windows Terminal alatt
+        ConsoleSizing.ResetCursorForRender();
 
         RenderHeader();
         RenderLevelSelector();
