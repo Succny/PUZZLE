@@ -104,8 +104,8 @@ public class HintSystem
 
         var (move, totalMoves, pushCount) = nextMove.Value;
         string action = move!.Pushed
-            ? $"Told a ládát {move.Direction.Name}ra ({move.Direction.Arrow})!"
-            : $"Menj {move.Direction.Name}ra ({move.Direction.Arrow})!";
+            ? $"Told a ládát {move.Direction.Name}{move.Direction.DirectionalSuffix} ({move.Direction.Arrow})!"
+            : $"Menj {move.Direction.Name}{move.Direction.DirectionalSuffix} ({move.Direction.Arrow})!";
 
         return $"{action}\n(Még {totalMoves} lépés, {pushCount} tolás a megoldásig)";
     }

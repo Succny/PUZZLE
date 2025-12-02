@@ -126,11 +126,11 @@ public sealed class DefaultHintProvider : IHintProvider
         {
             HintLevel.Soft => $"Próbálj {move.Direction.Name} irányba menni",
             HintLevel.Medium => move.Pushed
-                ? $"Told a ládát {move.Direction.Name}ra"
-                : $"Menj {move.Direction.Name}ra",
+                ? $"Told a ládát {move.Direction.Name}{move.Direction.DirectionalSuffix}"
+                : $"Menj {move.Direction.Name}{move.Direction.DirectionalSuffix}",
             HintLevel.Hard => move.Pushed
-                ? $"Told a ládát {move.Direction.Name}ra ({move.Direction.Arrow})! Még {totalMoves} lépés a megoldásig."
-                : $"Menj {move.Direction.Name}ra ({move.Direction.Arrow})! Még {totalMoves} lépés a megoldásig.",
+                ? $"Told a ládát {move.Direction.Name}{move.Direction.DirectionalSuffix} ({move.Direction.Arrow})! Még {totalMoves} lépés a megoldásig."
+                : $"Menj {move.Direction.Name}{move.Direction.DirectionalSuffix} ({move.Direction.Arrow})! Még {totalMoves} lépés a megoldásig.",
             _ => null
         };
         
