@@ -19,14 +19,24 @@ using System.Text;
 class Program
 {
     /// <summary>
-    /// Minimális konzol szélesség a UI megfelelő megjelenítéséhez
+    /// UI keretrendszer fix szélessége karaktercellákban.
+    /// Ez pontosan megegyezik a ConsoleUI.UiWidth értékkel.
     /// </summary>
-    private const int MinConsoleWidth = 80;
+    private const int UiWidth = 65;
 
     /// <summary>
-    /// Minimális konzol magasság a UI megfelelő megjelenítéséhez
+    /// UI keretrendszer fix magassága karaktercellákban.
+    /// Összetevők:
+    /// - Header: 4 sor
+    /// - Level selector: 2 sor
+    /// - Game area: 10 sor (minimum)
+    /// - Stats: 2 sor
+    /// - AI panel: 3 sor
+    /// - Message panel: 4 sor
+    /// - Controls: 7 sor
+    /// Összesen: 32 sor
     /// </summary>
-    private const int MinConsoleHeight = 35;
+    private const int UiHeight = 32;
 
     static void Main(string[] args)
     {
@@ -36,8 +46,9 @@ class Program
             Console.OutputEncoding = Encoding.UTF8;
             Console.Title = "SOKOBAN - AI Hint Rendszerrel";
 
-            // Konzol méret beállítása, ha lehetséges
-            SetupConsoleSize();
+            // Fix méretű konzol beállítása a stabil megjelenítéshez
+            // A ConsoleSizing osztály gondoskodik a buffer és ablak szinkronizálásáról
+            ConsoleSizing.ApplyFixedSize(UiWidth, UiHeight);
         }
         catch
         {
@@ -55,70 +66,6 @@ class Program
             Console.WriteLine($"Hiba történt: {ex.Message}");
             Console.WriteLine("Nyomj egy billentyűt a kilépéshez...");
             Console.ReadKey();
-        }
-    }
-
-    /// <summary>
-    /// Konzol ablak méretének beállítása, ha a platform támogatja.
-    /// </summary>
-    private static void SetupConsoleSize()
-    {
-        try
-        {
-            // Ellenőrizzük, hogy van-e konzol ablak (nem átirányított kimenet)
-            if (Console.IsOutputRedirected || Console.IsInputRedirected)
-            {
-                return;
-            }
-
-            // Platformfüggő méretbeállítás
-            if (OperatingSystem.IsWindows())
-            {
-                SetupWindowsConsoleSize();
-            }
-            // Linux/macOS esetén általában nem kell méretet állítani,
-            // a terminál emulátor kezeli
-        }
-        catch
-        {
-            // Ha nem sikerül, nem probléma - az alkalmazás fut tovább
-        }
-    }
-
-    /// <summary>
-    /// Windows-specifikus konzol méret beállítás.
-    /// </summary>
-    [System.Runtime.Versioning.SupportedOSPlatform("windows")]
-    private static void SetupWindowsConsoleSize()
-    {
-        try
-        {
-            // Csak Windows-on működik a SetWindowSize
-            int availableWidth = Console.LargestWindowWidth;
-            int availableHeight = Console.LargestWindowHeight;
-
-            int targetWidth = Math.Min(MinConsoleWidth, availableWidth);
-            int targetHeight = Math.Min(MinConsoleHeight, availableHeight);
-
-            // Először a buffer méretet kell beállítani, ha szükséges
-            if (Console.BufferWidth < targetWidth)
-            {
-                Console.BufferWidth = targetWidth;
-            }
-            if (Console.BufferHeight < targetHeight)
-            {
-                Console.BufferHeight = targetHeight;
-            }
-
-            // Ablak méret beállítása
-            if (availableWidth >= MinConsoleWidth && availableHeight >= MinConsoleHeight)
-            {
-                Console.SetWindowSize(targetWidth, targetHeight);
-            }
-        }
-        catch
-        {
-            // Windows Terminal és néhány konzol nem támogatja ezeket a műveleteket
         }
     }
 }
