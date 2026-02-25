@@ -78,7 +78,7 @@ public class SokobanGame
     private char[,] _originalMap;
     private int _playerRow;
     private int _playerCol;
-    private readonly Stack<GameState> _history;
+    private readonly LinkedList<GameState> _history;
     
     public int Width { get; private set; }
     public int Height { get; private set; }
@@ -89,7 +89,7 @@ public class SokobanGame
     public SokobanGame(Level level)
     {
         CurrentLevel = level;
-        _history = new Stack<GameState>();
+        _history = new LinkedList<GameState>();
         _map = new char[0, 0];
         _originalMap = new char[0, 0];
         Initialize(level);
@@ -101,7 +101,7 @@ public class SokobanGame
     private SokobanGame(SokobanGame other)
     {
         CurrentLevel = other.CurrentLevel;
-        _history = new Stack<GameState>();
+        _history = new LinkedList<GameState>();
         Width = other.Width;
         Height = other.Height;
         Moves = other.Moves;
@@ -308,7 +308,7 @@ public class SokobanGame
     /// </summary>
     private void SaveState()
     {
-        _history.Push(new GameState(_map, _playerRow, _playerCol, Moves, Pushes));
+        _history.AddLast(new GameState(_map, _playerRow, _playerCol, Moves, Pushes));
         TrimHistory();
     }
 
@@ -322,13 +322,7 @@ public class SokobanGame
     {
         if (_history.Count > MaxHistorySize)
         {
-            var tempList = _history.ToList();
-            tempList.RemoveAt(tempList.Count - 1);
-            _history.Clear();
-            foreach (var state in tempList.AsEnumerable().Reverse())
-            {
-                _history.Push(state);
-            }
+            _history.RemoveFirst();
         }
     }
 
@@ -340,7 +334,8 @@ public class SokobanGame
         if (_history.Count == 0)
             return false;
 
-        var state = _history.Pop();
+        var state = _history.Last!.Value;
+        _history.RemoveLast();
         Array.Copy(state.Map, _map, _map.Length);
         _playerRow = state.PlayerRow;
         _playerCol = state.PlayerCol;
