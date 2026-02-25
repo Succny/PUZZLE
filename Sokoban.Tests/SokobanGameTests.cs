@@ -143,6 +143,38 @@ public class SokobanGameTests
     }
     
     /// <summary>
+    /// Teszt: undo history legfeljebb 1000 állapotot tart.
+    /// </summary>
+    [Fact]
+    public void Undo_HistoryLimit_KeepsLatestStatesOnly()
+    {
+        var level = new Level("History Test", "Test", new string[]
+        {
+            "#####",
+            "#   #",
+            "# @ #",
+            "#   #",
+            "#####"
+        });
+        var game = new SokobanGame(level);
+
+        for (int i = 0; i < 1005; i++)
+        {
+            var result = game.Move(i % 2 == 0 ? -1 : 1, 0);
+            Assert.True(result.Success);
+        }
+
+        int undoCount = 0;
+        while (game.Undo())
+        {
+            undoCount++;
+        }
+
+        Assert.Equal(1000, undoCount);
+        Assert.Equal(5, game.Moves);
+    }
+
+    /// <summary>
     /// Teszt: restart visszaállítja az eredeti állapotot.
     /// </summary>
     [Fact]
