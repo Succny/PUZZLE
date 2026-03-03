@@ -26,7 +26,7 @@ public class ConsoleUI
     /// <summary>
     /// A teljes UI keretrendszer szélessége (fix érték a konzisztens megjelenítéshez)
     /// </summary>
-    private const int UiWidth = 65;
+    internal const int UiWidth = 65;
 
     /// <summary>
     /// A játéktér belső szélessége (keret és padding nélkül)

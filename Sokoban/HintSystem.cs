@@ -23,6 +23,12 @@ public class HintSystem
 {
     private readonly AISolver _solver;
     private int _hintCount;
+    private int _movesSinceLastPush;
+
+    /// <summary>
+    /// Ennyi lépés ládatolás nélkül után jelezzük a játékosnak, hogy esetleg elakadt.
+    /// </summary>
+    private const int StuckMoveThreshold = 7;
 
     private static readonly Random _random = new();
 
@@ -30,6 +36,7 @@ public class HintSystem
     {
         _solver = solver;
         _hintCount = 0;
+        _movesSinceLastPush = 0;
     }
 
     /// <summary>
@@ -186,6 +193,7 @@ public class HintSystem
     /// <summary>
     /// Lépés utáni visszajelzés generálása.
     /// Bátorító üzenetek, deadlock figyelmeztetések, győzelmi gratulációk.
+    /// Ha a játékos több lépést tesz ládatolás nélkül, „elakadt" üzenetet kap.
     /// </summary>
     public string? GetMoveResponse(MoveResult result, SokobanGame game)
     {
@@ -199,10 +207,23 @@ public class HintSystem
             return GetRandomMessage(Messages.DeadlockMessages);
         }
 
-        // Véletlenszerű bátorítás láda tolás után
-        if (result.Pushed && _random.Next(100) > 70)
+        if (result.Pushed)
         {
-            return GetRandomMessage(Messages.Encouragements);
+            _movesSinceLastPush = 0;
+            // Véletlenszerű bátorítás láda tolás után
+            if (_random.Next(100) > 70)
+            {
+                return GetRandomMessage(Messages.Encouragements);
+            }
+        }
+        else
+        {
+            _movesSinceLastPush++;
+            if (_movesSinceLastPush >= StuckMoveThreshold)
+            {
+                _movesSinceLastPush = 0;
+                return GetRandomMessage(Messages.StuckMessages);
+            }
         }
 
         return null;
@@ -236,5 +257,6 @@ public class HintSystem
     public void Reset()
     {
         _hintCount = 0;
+        _movesSinceLastPush = 0;
     }
 }

@@ -19,12 +19,6 @@ using System.Text;
 class Program
 {
     /// <summary>
-    /// UI keretrendszer fix szélessége karaktercellákban.
-    /// Ez pontosan megegyezik a ConsoleUI.UiWidth értékkel.
-    /// </summary>
-    private const int UiWidth = 65;
-
-    /// <summary>
     /// UI keretrendszer fix magassága karaktercellákban.
     /// Összetevők:
     /// - Header: 4 sor
@@ -48,7 +42,7 @@ class Program
 
             // Fix méretű konzol beállítása a stabil megjelenítéshez
             // A ConsoleSizing osztály gondoskodik a buffer és ablak szinkronizálásáról
-            ConsoleSizing.ApplyFixedSize(UiWidth, UiHeight);
+            ConsoleSizing.ApplyFixedSize(ConsoleUI.UiWidth, UiHeight);
         }
         catch
         {
