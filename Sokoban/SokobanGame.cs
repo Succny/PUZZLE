@@ -559,6 +559,43 @@ public class SokobanGame
     }
 
     /// <summary>
+    /// Hibamegelőzés: előrejelzi, hogy egy adott irányú lépés deadlockot okozna-e.
+    /// Ellenőrzi a push céljának sarok-deadlock státuszát a lépés végrehajtása nélkül.
+    /// 
+    /// FONTOS: Csak sarok-deadlockot jelez előre. Fal-vonal deadlock előrejelzéséhez
+    /// a szomszédos pozíciók is megváltoznának, ezért azt nem vizsgáljuk előre.
+    /// 
+    /// A szakdolgozatban hivatkozható: proaktív hibamegelőzés (hibamegelőzés),
+    /// amely a játékos döntése ELŐTT figyelmezteti a rossz lépésre.
+    /// </summary>
+    /// <param name="dRow">Sor irányú elmozdulás (-1: fel, 1: le)</param>
+    /// <param name="dCol">Oszlop irányú elmozdulás (-1: bal, 1: jobb)</param>
+    /// <returns>True, ha a lépés végrehajtása sarok-deadlockot okozna</returns>
+    public bool PredictDeadlock(int dRow, int dCol)
+    {
+        int newRow = _playerRow + dRow;
+        int newCol = _playerCol + dCol;
+
+        // Csak akkor releváns, ha a célmezőn láda van
+        if (!IsBox(newRow, newCol))
+            return false;
+
+        int boxNewRow = newRow + dRow;
+        int boxNewCol = newCol + dCol;
+
+        // Ha a tolás nem érvényes (fal vagy láda blokkolja), nem deadlock
+        if (IsWall(boxNewRow, boxNewCol) || IsBox(boxNewRow, boxNewCol))
+            return false;
+
+        // Ha célhelyre kerülne, nem deadlock
+        if (IsGoal(boxNewRow, boxNewCol))
+            return false;
+
+        // Sarok-deadlock előrejelzés a célpozícióban
+        return IsCornerDeadlock(boxNewRow, boxNewCol);
+    }
+
+    /// <summary>
     /// Ládák száma
     /// </summary>
     public int BoxCount

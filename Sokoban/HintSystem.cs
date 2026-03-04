@@ -230,6 +230,31 @@ public class HintSystem
     }
 
     /// <summary>
+    /// Hibamegelőzés: proaktív figyelmeztetés veszélyes lépések előtt.
+    /// Ellenőrzi, hogy a játékos bármelyik irányban tolna-e ládát zsákutcába,
+    /// és ha igen, figyelmezteti a lehetséges bajt MIELŐTT az megtörténne.
+    /// 
+    /// A szakdolgozatban hivatkozható: proaktív hibamegelőzés, az MI
+    /// a játékos döntése előtt figyelmeztet a veszélyes lépésekre.
+    /// </summary>
+    /// <param name="game">Az aktuális játékállapot</param>
+    /// <returns>Figyelmeztetés szövege, vagy null ha nincs veszélyes lépés</returns>
+    public string? GetProactiveWarning(SokobanGame game)
+    {
+        var dangerousDirs = MoveDirection.All
+            .Where(dir => game.PredictDeadlock(dir.DRow, dir.DCol))
+            .Select(dir => $"{dir.Name} ({dir.Arrow})")
+            .ToList();
+
+        if (dangerousDirs.Count == 0)
+            return null;
+
+        string dirs = string.Join(" vagy ", dangerousDirs);
+        return $"⚠️ Hibamegelőzés: Ha {dirs} tolod a ládát, zsákutcába kerül!\n" +
+               $"Használd az 'U' billentyűt ha meggondolod magad.";
+    }
+
+    /// <summary>
     /// Üdvözlő üzenet új pálya betöltésekor.
     /// </summary>
     public string GetWelcomeMessage(Level level, int levelNum)
