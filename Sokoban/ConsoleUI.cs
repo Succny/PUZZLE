@@ -593,6 +593,15 @@ public class ConsoleUI
             {
                 _lastMessage = response;
             }
+            else if (!result.Solved)
+            {
+                // Hibamegelőzés: proaktív figyelmeztetés a következő veszélyes lépésekről
+                var warning = _hintSystem.GetProactiveWarning(_game);
+                if (warning != null)
+                {
+                    _lastMessage = warning;
+                }
+            }
 
             if (result.Solved)
             {

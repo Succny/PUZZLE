@@ -246,7 +246,7 @@ public class SokobanGameTests
     }
     
     /// <summary>
-    /// Teszt: azonos állapot azonos kulcsot ad.
+    /// Teszt: GetStateKey azonos állapot azonos kulcsot ad.
     /// </summary>
     [Fact]
     public void GetStateKey_SameState_ReturnsSameKey()
@@ -259,5 +259,81 @@ public class SokobanGameTests
         var key2 = game.GetStateKey();
         
         Assert.Equal(key1, key2);
+    }
+
+    /// <summary>
+    /// Teszt: PredictDeadlock - ha a lépés ládát sarokba tolna, True.
+    /// </summary>
+    [Fact]
+    public void PredictDeadlock_WouldPushToCorner_ReturnsTrue()
+    {
+        // Pálya: játékos a ládától balra, láda a saroktól 1-re
+        //   #####
+        //   #   #
+        //   #@$ #
+        //   #   #
+        //   #####
+        // Ha jobbra megy, a ládát a jobb felső sarokba tolná (ha fent és jobbra is fal)
+        var level = new Level("Predict Deadlock Test", "Teszt", new string[]
+        {
+            "#####",
+            "#  ##",
+            "#@$ #",
+            "#  .#",
+            "#####"
+        });
+        var game = new SokobanGame(level);
+        
+        // Jobbra tolás: a láda (2,2) -> (2,3) pozícióba kerülne
+        // (2,3): jobb szomszéd fal (2,4)=fal, felső szomszéd (1,3)=fal => sarok deadlock
+        bool predict = game.PredictDeadlock(0, 1);
+        Assert.True(predict);
+    }
+
+    /// <summary>
+    /// Teszt: PredictDeadlock - ha a célpozíció célhely, nem deadlock.
+    /// </summary>
+    [Fact]
+    public void PredictDeadlock_WouldPushToGoal_ReturnsFalse()
+    {
+        // Pálya: játékos a ládától balra, célhely a láda jobbján
+        var game = new SokobanGame(CreateSimpleLevel());
+        // A játékos (2,1)-en van, láda (2,2)-n, cél (2,3)-on
+        // Jobbra tolás -> láda célhelyre kerül -> nem deadlock
+        bool predict = game.PredictDeadlock(0, 1);
+        Assert.False(predict);
+    }
+
+    /// <summary>
+    /// Teszt: PredictDeadlock - ha nincs szomszédos láda, False.
+    /// </summary>
+    [Fact]
+    public void PredictDeadlock_NoBoxAdjacent_ReturnsFalse()
+    {
+        var game = new SokobanGame(CreateSimpleLevel());
+        // Fel irányban nincs láda
+        bool predict = game.PredictDeadlock(-1, 0);
+        Assert.False(predict);
+    }
+
+    /// <summary>
+    /// Teszt: PredictDeadlock - ha a tolás falba ütközne, False (érvénytelen lépés).
+    /// </summary>
+    [Fact]
+    public void PredictDeadlock_PushIntoWall_ReturnsFalse()
+    {
+        // Pálya: láda a jobb felső sarokban, játékos a ládától balra
+        var level = new Level("Push Into Wall Test", "Teszt", new string[]
+        {
+            "#####",
+            "#$@.#",
+            "#   #",
+            "#   #",
+            "#####"
+        });
+        var game = new SokobanGame(level);
+        // Balra tolás: láda (1,1) -> (1,0) = fal, tehát érvénytelen tolás
+        bool predict = game.PredictDeadlock(0, -1);
+        Assert.False(predict);
     }
 }
