@@ -78,16 +78,21 @@ public class ConsoleUI
 
     /// <summary>
     /// Játék futtatása - fő ciklus.
+    /// Renderelés csak az indulásnál és minden billentyűleütés után történik,
+    /// így nem árasztja el a terminált felesleges kiírásokkal.
     /// </summary>
     public void Run()
     {
         Console.CursorVisible = false;
         Console.Clear();
 
+        Render(); // Kezdeti megjelenítés
+
         while (_running)
         {
-            Render();
-            HandleInput();
+            HandleInput(); // Blokkolva vár billentyűleütésre
+            if (_running)
+                Render(); // Csak akkor renderel, ha még fut a játék
         }
 
         Console.CursorVisible = true;
@@ -228,7 +233,10 @@ public class ConsoleUI
             Console.Write("║  ");
             Console.ForegroundColor = HintColor;
             string line = i < messageLines.Length ? messageLines[i] : "";
-            Console.Write(line.PadRight(61));
+            // Csonkítás, hogy ne törje meg a keretet
+            if (line.Length > GameAreaWidth)
+                line = line[..GameAreaWidth];
+            Console.Write(line.PadRight(GameAreaWidth));
             Console.ResetColor();
             Console.WriteLine("║");
         }
@@ -352,6 +360,8 @@ public class ConsoleUI
 
     /// <summary>
     /// Bemenet kezelése - billentyűleütések feldolgozása.
+    /// Blokkolva vár, amíg a játékos le nem nyom egy billentyűt, így
+    /// nem okoz felesleges terminálkiírásokat.
     /// A bemenetek logikailag csoportosítva:
     /// - Mozgás (nyilak, WASD)
     /// - Undo (U, Backspace)
@@ -360,12 +370,6 @@ public class ConsoleUI
     /// </summary>
     private void HandleInput()
     {
-        if (!Console.KeyAvailable)
-        {
-            Thread.Sleep(50);
-            return;
-        }
-
         var key = Console.ReadKey(true);
 
         // Mozgás kezelése
