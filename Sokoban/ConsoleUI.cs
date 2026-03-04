@@ -40,10 +40,22 @@ public class ConsoleUI
 
     private readonly SokobanGame _game;
     private readonly HintSystem _hintSystem;
+    private readonly AISolver _solver;
     private int _currentLevelIndex;
     private string _lastMessage;
     private DateTime _startTime;
     private bool _running;
+    
+    /// <summary>
+    /// Az AI által legutóbb javasolt lépés iránya (F gombhoz).
+    /// Null, ha nincs érvényes javasolt lépés.
+    /// </summary>
+    private MoveDirection? _lastAISuggestedMove;
+    
+    /// <summary>
+    /// AI által végrehajtott (Follow AI) lépések száma - kooperáció metrika.
+    /// </summary>
+    private int _aiAssistedMoves;
 
     // Színek a konzolhoz
     private static readonly ConsoleColor WallColor = ConsoleColor.DarkGray;
@@ -56,9 +68,9 @@ public class ConsoleUI
     public ConsoleUI()
     {
         _currentLevelIndex = 0;
-        var solver = new AISolver();
+        _solver = new AISolver();
         _game = new SokobanGame(Levels.AllLevels[_currentLevelIndex]);
-        _hintSystem = new HintSystem(solver);
+        _hintSystem = new HintSystem(_solver);
         _lastMessage = _hintSystem.GetWelcomeMessage(Levels.AllLevels[_currentLevelIndex], _currentLevelIndex + 1);
         _startTime = DateTime.Now;
         _running = true;
@@ -174,17 +186,33 @@ public class ConsoleUI
         Console.ForegroundColor = ConsoleColor.Yellow;
         Console.Write($"Ládák: {_game.BoxesOnGoalCount}/{_game.BoxCount}");
         Console.ResetColor();
-        Console.WriteLine("    ║");
+        Console.Write("  │  ");
+        Console.ForegroundColor = ConsoleColor.Magenta;
+        Console.Write($"AI: {_aiAssistedMoves,2}");
+        Console.ResetColor();
+        Console.WriteLine("  ║");
     }
 
     /// <summary>
     /// AI asszisztens fejléc renderelése.
+    /// Mutatja az aktuálisan javasolt lépést, ha van.
     /// </summary>
     private void RenderAIPanel()
     {
         Console.ForegroundColor = ConsoleColor.Yellow;
         Console.WriteLine("╠═══════════════════════════════════════════════════════════════╣");
-        Console.WriteLine("║  🤖 AI Asszisztens                                            ║");
+        if (_lastAISuggestedMove != null)
+        {
+            Console.Write("║  🤖 AI Asszisztens  [F: ");
+            Console.ForegroundColor = ConsoleColor.Green;
+            Console.Write($"{_lastAISuggestedMove!.Arrow} Kövesd az AI-t");
+            Console.ForegroundColor = ConsoleColor.Yellow;
+            Console.WriteLine("]                       ║");
+        }
+        else
+        {
+            Console.WriteLine("║  🤖 AI Asszisztens  [H: Kérj segítséget]                     ║");
+        }
         Console.WriteLine("╠═══════════════════════════════════════════════════════════════╣");
         Console.ResetColor();
     }
@@ -216,9 +244,9 @@ public class ConsoleUI
         Console.WriteLine("║  🎮 Irányítás                                                 ║");
         Console.WriteLine("╠═══════════════════════════════════════════════════════════════╣");
         Console.ResetColor();
-        Console.WriteLine("║  ↑↓←→/WASD: Mozgás  │  H: Segítség │  N: Elemzés             ║");
-        Console.WriteLine("║  R: Újraindítás     │  1-5: Pálya választás  │  Q: Kilépés   ║");
-        Console.WriteLine("║  U/Backspace: Visszalépés                                    ║");
+        Console.WriteLine("║  ↑↓←→/WASD: Mozgás  │  H: Segítség  │  N: Elemzés           ║");
+        Console.WriteLine("║  F: Kövesd AI-t     │  1-5: Pálya választás  │  Q: Kilépés   ║");
+        Console.WriteLine("║  U/Backspace: Visszalépés  │  R: Újraindítás                 ║");
         Console.ForegroundColor = ConsoleColor.Yellow;
         Console.WriteLine("╚═══════════════════════════════════════════════════════════════╝");
         Console.ResetColor();
@@ -414,6 +442,7 @@ public class ConsoleUI
     /// Hint billentyűk kezelése.
     /// H = Help (segítség) - következő lépés javaslata
     /// N = iNfo/aNalízis - állapot elemzés
+    /// F = Follow AI - AI javasolt lépés végrehajtása
     /// </summary>
     /// <returns>True, ha hint kérés történt</returns>
     private bool HandleHintInput(ConsoleKeyInfo key)
@@ -423,14 +452,70 @@ public class ConsoleUI
             case ConsoleKey.H:
                 // H = Help - következő lépés javaslata (segítség)
                 _lastMessage = _hintSystem.GenerateHint(_game, _currentLevelIndex);
+                // Az AI javasolt lépés mentése az F gombhoz
+                UpdateLastAISuggestedMove();
                 return true;
 
             case ConsoleKey.N:
                 // N = iNfo/aNalízis - állapot elemzés
                 _lastMessage = _hintSystem.GenerateDetailedHint(_game, _currentLevelIndex);
                 return true;
+
+            case ConsoleKey.F:
+                // F = Follow AI - az AI által javasolt lépés végrehajtása
+                return HandleFollowAI();
         }
         return false;
+    }
+
+    /// <summary>
+    /// Az AI javasolt lépésének frissítése az AISolver segítségével.
+    /// Menti a következő optimális lépés irányát az F gombhoz.
+    /// </summary>
+    private void UpdateLastAISuggestedMove()
+    {
+        if (_game.IsSolved())
+        {
+            _lastAISuggestedMove = null;
+            return;
+        }
+        var nextMove = _solver.GetNextMove(_game);
+        _lastAISuggestedMove = nextMove?.Move?.Direction;
+    }
+
+    /// <summary>
+    /// AI által javasolt lépés végrehajtása (F gomb - Follow AI).
+    /// Ha van érvényes AI javaslat, végrehajtja azt és frissíti az AI-asszisztált lépések számát.
+    /// Ez az ember-AI kooperáció közvetlen megvalósítása: a játékos delegálja
+    /// a lépést az AI-nak, de ő dönti el, mikor teszi ezt.
+    /// </summary>
+    /// <returns>True, ha a billentyű le lett kezelve</returns>
+    private bool HandleFollowAI()
+    {
+        if (_lastAISuggestedMove == null)
+        {
+            // Nincs előző hint - megpróbáljuk most kiszámolni
+            UpdateLastAISuggestedMove();
+        }
+
+        if (_lastAISuggestedMove != null)
+        {
+            var dir = _lastAISuggestedMove!;
+            MakeMove(dir.DRow, dir.DCol);
+            _aiAssistedMoves++;
+            // Sikeres AI lépés után frissítjük a javaslatot
+            UpdateLastAISuggestedMove();
+            if (!_lastMessage.StartsWith("🎉") && !_lastMessage.StartsWith("🏆"))
+            {
+                _lastMessage = $"🤖 AI lépett: {dir.Name}{dir.DirectionalSuffix} ({dir.Arrow})\n" +
+                               $"(AI által végrehajtott lépések: {_aiAssistedMoves})";
+            }
+        }
+        else
+        {
+            _lastMessage = "🤖 Az AI jelenleg nem talál javaslatot.\nNyomj H-t a segítségért!";
+        }
+        return true;
     }
 
     /// <summary>
@@ -444,6 +529,8 @@ public class ConsoleUI
             case ConsoleKey.R:
                 _game.Restart();
                 _hintSystem.Reset();
+                _aiAssistedMoves = 0;
+                _lastAISuggestedMove = null;
                 _startTime = DateTime.Now;
                 _lastMessage = "🔄 Pálya újraindítva!";
                 break;
@@ -514,9 +601,11 @@ public class ConsoleUI
                 
                 _lastMessage = $"🎉 GRATULÁLOK! Pálya teljesítve!\n" +
                                $"Lépések: {_game.Moves}  │  Tolások: {_game.Pushes}  │  Idő: {elapsed:mm\\:ss}\n" +
-                               nextLevelHint;
+                               $"AI-asszisztált lépések: {_aiAssistedMoves}  │  {nextLevelHint}";
             }
         }
+        // Minden saját lépés után töröljük az AI javaslatot (elavult lett)
+        _lastAISuggestedMove = null;
     }
 
     /// <summary>
@@ -531,6 +620,8 @@ public class ConsoleUI
             
             _game.LoadLevel(level);
             _hintSystem.Reset();
+            _aiAssistedMoves = 0;
+            _lastAISuggestedMove = null;
             _startTime = DateTime.Now;
             _lastMessage = _hintSystem.GetWelcomeMessage(level, index + 1);
         }

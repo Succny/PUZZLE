@@ -173,4 +173,50 @@ public class AISolverTests
         
         Assert.True(solver.LastIterationCount > 0);
     }
+    
+    /// <summary>
+    /// Teszt: GetNextMove által javasolt lépés végrehajtható a játékban (Follow AI).
+    /// Ez a teszt az ember-AI kooperáció alapját ellenőrzi: az AI javaslatát
+    /// a játékos végrehajtja, és a lépés érvényes marad.
+    /// </summary>
+    [Fact]
+    public void GetNextMove_FollowAI_ExecutesMoveSuccessfully()
+    {
+        var solver = new AISolver();
+        var game = new SokobanGame(CreateSolvableLevel());
+        
+        var nextMove = solver.GetNextMove(game);
+        Assert.NotNull(nextMove);
+        
+        var dir = nextMove!.Value.Move!.Direction;
+        var result = game.Move(dir.DRow, dir.DCol);
+        
+        Assert.True(result.Success);
+    }
+    
+    /// <summary>
+    /// Teszt: Follow AI sorozat - AI javaslatait követve a pálya megoldható.
+    /// Ez igazolja, hogy az AI és az ember szoros együttműködése (minden lépés AI-javaslat alapján)
+    /// valóban megoldja a pályát.
+    /// </summary>
+    [Fact]
+    public void GetNextMove_FollowAllAIMoves_SolvesLevel()
+    {
+        var solver = new AISolver();
+        var game = new SokobanGame(CreateSolvableLevel());
+        
+        int maxSteps = 100; // Végtelen ciklus elkerülése
+        int steps = 0;
+        
+        while (!game.IsSolved() && steps < maxSteps)
+        {
+            var nextMove = solver.GetNextMove(game);
+            if (nextMove == null) break;
+            
+            game.Move(nextMove.Value.Move!.Direction.DRow, nextMove.Value.Move!.Direction.DCol);
+            steps++;
+        }
+        
+        Assert.True(game.IsSolved());
+    }
 }
