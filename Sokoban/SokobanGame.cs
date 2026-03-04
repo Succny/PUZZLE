@@ -599,16 +599,6 @@ public class SokobanGame
     }
 
     /// <summary>
-    /// Térkép klónozása
-    /// </summary>
-    public char[,] CloneMap()
-    {
-        var clone = new char[Height, Width];
-        Array.Copy(_map, clone, _map.Length);
-        return clone;
-    }
-
-    /// <summary>
     /// Állapot kulcs generálása (AI-hoz)
     /// </summary>
     public string GetStateKey()

@@ -92,41 +92,11 @@ public class SolutionResult
 /// </summary>
 public class AISolver
 {
-    /// <summary>
-    /// Büntetés érték deadlock állapotokhoz a heurisztikában.
-    /// Nagyon nagy érték, ami biztosítja, hogy a deadlock állapotok
-    /// ne kerüljenek a prioritási sor elejére.
-    /// </summary>
-    private const int DeadlockPenalty = int.MaxValue / 2;
-
-    /// <summary>
-    /// Alapértelmezett maximális iterációszám.
-    /// </summary>
     private const int DefaultMaxIterations = 100000;
 
-    /// <summary>
-    /// Maximális iterációszám a keresés során.
-    /// A futási idő korlátozására szolgál, hogy elkerüljük a túl hosszú számításokat.
-    /// Alapértelmezett érték: 100000.
-    /// 
-    /// A szakdolgozatban hivatkozható: számítási komplexitás korlátozása.
-    /// </summary>
     public int MaxIterations { get; set; } = DefaultMaxIterations;
 
-    /// <summary>
-    /// Debug mód engedélyezése - kiírja az iterációk számát a keresés végén.
-    /// </summary>
-    public bool DebugMode { get; set; } = false;
-
-    /// <summary>
-    /// Az utolsó keresés során elért iterációk száma.
-    /// </summary>
     public int LastIterationCount { get; private set; } = 0;
-
-    /// <summary>
-    /// Az utolsó keresés leállási oka.
-    /// </summary>
-    public string? LastSearchResult { get; private set; }
 
     /// <summary>
     /// Alapértelmezett konstruktor 100000-es MaxIterations értékkel.
@@ -240,18 +210,16 @@ public class AISolver
     public SolutionResult Solve(SokobanGame game)
     {
         LastIterationCount = 0;
-        LastSearchResult = null;
 
         if (game.IsSolved())
         {
-            LastSearchResult = "already_solved";
             return new SolutionResult { Success = true };
         }
 
         var visited = new HashSet<string>();
         var queue = new PriorityQueue<(SokobanGame Game, List<SolverMove> Moves), int>();
 
-        var initialGame = CloneGame(game);
+        var initialGame = game.Clone();
         queue.Enqueue((initialGame, new List<SolverMove>()), CalculateHeuristic(initialGame));
         visited.Add(initialGame.GetStateKey());
 
@@ -265,7 +233,7 @@ public class AISolver
 
             foreach (var dir in MoveDirection.All)
             {
-                var newGame = CloneGame(currentGame);
+                var newGame = currentGame.Clone();
                 var result = newGame.Move(dir.DRow, dir.DCol);
 
                 if (result.Success)
@@ -296,11 +264,6 @@ public class AISolver
                         if (newGame.IsSolved())
                         {
                             LastIterationCount = iterations;
-                            LastSearchResult = "success";
-                            if (DebugMode)
-                            {
-                                Console.WriteLine($"[DEBUG] Solver: megoldás találva {iterations} iteráció után");
-                            }
                             return new SolutionResult
                             {
                                 Success = true,
@@ -318,12 +281,6 @@ public class AISolver
 
         LastIterationCount = iterations;
         string reason = iterations >= MaxIterations ? "timeout" : "exhausted";
-        LastSearchResult = reason;
-
-        if (DebugMode)
-        {
-            Console.WriteLine($"[DEBUG] Solver: keresés leállt - {reason}, {iterations} iteráció, {visited.Count} állapot vizsgálva");
-        }
 
         return new SolutionResult
         {
@@ -379,12 +336,4 @@ public class AISolver
         return (null, solution);
     }
 
-    /// <summary>
-    /// Játék klónozása a keresés során.
-    /// Minden új állapot független másolat, hogy a keresés ne módosítsa az eredetit.
-    /// </summary>
-    private SokobanGame CloneGame(SokobanGame original)
-    {
-        return original.Clone();
-    }
 }
