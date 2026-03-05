@@ -212,7 +212,10 @@ public class ConsoleUI
             Console.ForegroundColor = ConsoleColor.Green;
             Console.Write($"{_lastAISuggestedMove!.Arrow} Kövesd az AI-t");
             Console.ForegroundColor = ConsoleColor.Yellow;
-            Console.WriteLine("]                       ║");
+            Console.Write("]");
+            Console.Write(new string(' ', 23));
+            Console.ResetColor();
+            Console.WriteLine("║");
         }
         else
         {

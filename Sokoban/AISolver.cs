@@ -144,7 +144,7 @@ public class AISolver
                 {
                     goals.Add((row, col));
                 }
-                if (tile == Tiles.Box)
+                if (tile == Tiles.Box || tile == Tiles.BoxOnGoal)
                 {
                     boxes.Add((row, col));
                 }
@@ -245,9 +245,9 @@ public class AISolver
                         // Deadlock ellenőrzés - csak ha láda tolás történt
                         if (result.Pushed)
                         {
-                            // A láda új pozíciója: játékos eredeti pozíció + 2 * irány
-                            int boxRow = currentGame.PlayerPosition.Row + dir.DRow * 2;
-                            int boxCol = currentGame.PlayerPosition.Col + dir.DCol * 2;
+                            // A láda új pozíciója: az új játékos pozíció + 1 * irány
+                            int boxRow = newGame.PlayerPosition.Row + dir.DRow;
+                            int boxCol = newGame.PlayerPosition.Col + dir.DCol;
                             if (IsDeadlock(newGame, boxRow, boxCol))
                             {
                                 continue;
