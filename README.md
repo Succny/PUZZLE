@@ -20,38 +20,14 @@ A Sokoban egy klasszikus logikai játék, ahol a játékosnak ládákat kell a c
 - ↩️ **Undo Funkció**: Bármikor visszaléphetsz (max ~1000 lépés)
 - 📊 **Állapot Elemzés**: A játék folyamatosan elemzi a helyzetet
 - 🖥️ **Konzol Felület**: Tiszta, áttekinthető konzol UI
-- 🌐 **Lokalizáció**: Magyar és angol nyelv támogatás
-- 📈 **Telemetria**: Játékesemények nyomon követése
 
 ## 🏗️ Architektúra
 
-A projekt rétegezett, tiszta architektúrát (Clean Architecture) követ:
-
-### Domain Réteg (`Sokoban/Domain/`)
-Tiszta üzleti logika, interfészek és események:
-- **IHintProvider**: Hint algoritmus interfész (Strategy pattern)
-- **ILevelLoader**: Pálya betöltő interfész
-- **ITelemetryClient**: Telemetria interfész
-- **ILocalization**: Lokalizációs interfész
-- **GameEvents**: Központi eseménykezelés (Observer pattern)
-- **HintRecommendation, HintOptions**: Hint domain modellek
-
-### Application Réteg (`Sokoban/Application/`)
-Szolgáltatások és use case-ek:
-- **DefaultHintProvider**: Alapértelmezett hint algoritmus (AISolver wrapper)
-- **CachedHintProvider**: Cache-elt hint provider (Decorator pattern)
-- **AsyncHintService**: Aszinkron hint számítás időkerettel
-
-### Infrastructure Réteg (`Sokoban/Infrastructure/`)
-Külső rendszerek és adatbetöltés:
-- **JsonLocalization**: Kulcs-alapú lokalizáció HU/EN támogatással
-- **ConsoleTelemetryClient**: Telemetria implementáció
-- **TelemetryIntegration**: Játékesemények automatikus naplózása
-- **DefaultLevelLoader**: Pálya betöltő implementáció
+A projekt rétegezett felépítésű, ahol minden fájl egyértelműen egy-egy réteghez tartozik:
 
 ### Core Réteg (Játékmotor)
 - **SokobanGame**: Játéklogika, állapotkezelés, mozgások
-- **Levels, Level**: Pályadefiníciók
+- **Levels**: Pályadefiníciók és szintek
 - **Tiles**: Csempe konstansok (fal, padló, láda, cél, játékos)
 - **MoveResult, GameState**: Eredmény és állapot osztályok
 - Undo stack kezelése (TrimHistory)
@@ -74,6 +50,7 @@ Külső rendszerek és adatbetöltés:
 - **ConsoleUI**: Konzol megjelenítés és input kezelés
   - Render metódusok: RenderHeader, RenderLevelSelector, RenderGameArea, RenderStats, RenderAIPanel, RenderMessagePanel, RenderControls
   - Input handler metódusok: HandleMovementInput, HandleUndoInput, HandleHintInput, HandleGameControlInput
+- **ConsoleSizing**: Konzol ablak/buffer méretezés és stabilizáció
 - **Program**: Alkalmazás belépési pont
 
 ## 🚀 Indítás
@@ -159,18 +136,9 @@ PUZZLE/
 │   └── workflows/
 │       └── dotnet.yml          # CI/CD workflow
 ├── Sokoban/
-│   ├── Domain/                 # Tiszta üzleti logika
-│   │   ├── Interfaces.cs       # IHintProvider, ILocalization, stb.
-│   │   └── GameEvents.cs       # Központi események
-│   ├── Application/            # Szolgáltatások
-│   │   ├── HintProviders.cs    # Hint provider implementációk
-│   │   └── AsyncHintService.cs # Aszinkron hint számítás
-│   ├── Infrastructure/         # Külső rendszerek
-│   │   ├── Localization.cs     # HU/EN lokalizáció
-│   │   ├── Telemetry.cs        # Telemetria és analitika
-│   │   └── LevelLoader.cs      # Pálya betöltés
 │   ├── Program.cs              # [UI] Belépési pont
 │   ├── ConsoleUI.cs            # [UI] Konzol felhasználói felület
+│   ├── ConsoleSizing.cs        # [UI] Konzol ablak/buffer méretezés
 │   ├── SokobanGame.cs          # [Core] Játék logika
 │   ├── Levels.cs               # [Core] Pályák és csempék definíciói
 │   ├── AISolver.cs             # [AI] AI megoldó algoritmus
@@ -180,7 +148,7 @@ PUZZLE/
 ├── Sokoban.Tests/              # Egységtesztek
 │   ├── SokobanGameTests.cs     # Játéklogika tesztek
 │   ├── AISolverTests.cs        # AI algoritmus tesztek
-│   ├── ArchitectureTests.cs    # Architektúra komponens tesztek
+│   ├── HintSystemTests.cs      # Hint rendszer tesztek
 │   └── Sokoban.Tests.csproj    # Teszt projekt fájl
 ├── Sokoban.sln                 # Solution fájl
 ├── README.md                   # Ez a fájl
@@ -218,10 +186,8 @@ A projekt GitHub Actions-t használ folyamatos integrációhoz:
 - **Console Application**: Konzol alapú felület
 
 ### Design Patternek
-- **Strategy Pattern**: IHintProvider interfész különböző hint algoritmusokhoz
-- **Decorator Pattern**: CachedHintProvider cache-eléssel bővíti az alapot
-- **Observer Pattern**: GameEvents központi eseménykezelés
-- **Repository Pattern**: ILevelLoader pálya betöltéshez
+- **Strategy Pattern**: HintSystem különböző hint stratégiái
+- **Template Method**: AISolver keresési algoritmus felépítése
 
 ### AI Algoritmusok
 - **A* keresés**: Heurisztikus optimalizálás prioritásos sorral
