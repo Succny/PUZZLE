@@ -79,7 +79,11 @@ public class SokobanGame
     private int _playerRow;
     private int _playerCol;
     private readonly LinkedList<GameState> _history;
-    
+
+    // Cache for box counts to avoid repeated map scanning
+    private int _boxCount;
+    private int _boxesOnGoalCount;
+
     public int Width { get; private set; }
     public int Height { get; private set; }
     public int Moves { get; private set; }
@@ -108,11 +112,15 @@ public class SokobanGame
         Pushes = other.Pushes;
         _playerRow = other._playerRow;
         _playerCol = other._playerCol;
-        
+
         _map = new char[Height, Width];
         _originalMap = new char[Height, Width];
         Array.Copy(other._map, _map, other._map.Length);
         Array.Copy(other._originalMap, _originalMap, other._originalMap.Length);
+
+        // Copy cached box counts
+        _boxCount = other._boxCount;
+        _boxesOnGoalCount = other._boxesOnGoalCount;
     }
 
     /// <summary>
@@ -153,6 +161,31 @@ public class SokobanGame
         Moves = 0;
         Pushes = 0;
         _history.Clear();
+        RecalculateBoxCounts();
+    }
+
+    /// <summary>
+    /// Újraszámolja a láda számokat a teljes térképen.
+    /// Hívandó inicializáláskor vagy állapot visszaállításkor.
+    /// </summary>
+    private void RecalculateBoxCounts()
+    {
+        _boxCount = 0;
+        _boxesOnGoalCount = 0;
+
+        for (int row = 0; row < Height; row++)
+        {
+            for (int col = 0; col < Width; col++)
+            {
+                char tile = _map[row, col];
+                if (tile == Tiles.Box || tile == Tiles.BoxOnGoal)
+                {
+                    _boxCount++;
+                    if (tile == Tiles.BoxOnGoal)
+                        _boxesOnGoalCount++;
+                }
+            }
+        }
     }
 
     /// <summary>
@@ -293,14 +326,18 @@ public class SokobanGame
     private void MoveBox(int fromRow, int fromCol, int toRow, int toCol)
     {
         // Eredeti pozíció frissítése
-        _map[fromRow, fromCol] = _map[fromRow, fromCol] == Tiles.BoxOnGoal
-            ? Tiles.Goal
-            : Tiles.Floor;
+        bool wasOnGoal = _map[fromRow, fromCol] == Tiles.BoxOnGoal;
+        _map[fromRow, fromCol] = wasOnGoal ? Tiles.Goal : Tiles.Floor;
 
         // Új pozíció beállítása
-        _map[toRow, toCol] = _map[toRow, toCol] == Tiles.Goal
-            ? Tiles.BoxOnGoal
-            : Tiles.Box;
+        bool isOnGoal = _map[toRow, toCol] == Tiles.Goal;
+        _map[toRow, toCol] = isOnGoal ? Tiles.BoxOnGoal : Tiles.Box;
+
+        // Update cached counts incrementally
+        if (wasOnGoal)
+            _boxesOnGoalCount--;
+        if (isOnGoal)
+            _boxesOnGoalCount++;
     }
 
     /// <summary>
@@ -350,6 +387,7 @@ public class SokobanGame
         _playerCol = state.PlayerCol;
         Moves = state.Moves;
         Pushes = state.Pushes;
+        RecalculateBoxCounts(); // Recalculate after restoring state
         return true;
     }
 
@@ -607,49 +645,20 @@ public class SokobanGame
     /// <summary>
     /// Ládák száma
     /// </summary>
-    public int BoxCount
-    {
-        get
-        {
-            int count = 0;
-            for (int row = 0; row < Height; row++)
-            {
-                for (int col = 0; col < Width; col++)
-                {
-                    if (_map[row, col] == Tiles.Box || _map[row, col] == Tiles.BoxOnGoal)
-                        count++;
-                }
-            }
-            return count;
-        }
-    }
+    public int BoxCount => _boxCount;
 
     /// <summary>
     /// Célhelyen lévő ládák száma
     /// </summary>
-    public int BoxesOnGoalCount
-    {
-        get
-        {
-            int count = 0;
-            for (int row = 0; row < Height; row++)
-            {
-                for (int col = 0; col < Width; col++)
-                {
-                    if (_map[row, col] == Tiles.BoxOnGoal)
-                        count++;
-                }
-            }
-            return count;
-        }
-    }
+    public int BoxesOnGoalCount => _boxesOnGoalCount;
 
     /// <summary>
     /// Állapot kulcs generálása (AI-hoz)
+    /// Optimalizálva StringBuilder használatával az allokációk csökkentésére.
     /// </summary>
     public string GetStateKey()
     {
-        var boxes = new List<string>();
+        var boxes = new List<string>(_boxCount);
         for (int row = 0; row < Height; row++)
         {
             for (int col = 0; col < Width; col++)
@@ -661,6 +670,19 @@ public class SokobanGame
             }
         }
         boxes.Sort();
-        return $"{_playerRow},{_playerCol}|{string.Join("|", boxes)}";
+
+        // Use StringBuilder to reduce string allocations
+        var sb = new System.Text.StringBuilder(_playerRow.ToString().Length + _playerCol.ToString().Length + 3 + boxes.Count * 8);
+        sb.Append(_playerRow);
+        sb.Append(',');
+        sb.Append(_playerCol);
+
+        foreach (var box in boxes)
+        {
+            sb.Append('|');
+            sb.Append(box);
+        }
+
+        return sb.ToString();
     }
 }
