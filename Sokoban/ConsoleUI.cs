@@ -45,6 +45,18 @@ public class ConsoleUI
     private string _lastMessage;
     private DateTime _startTime;
     private bool _running;
+
+    // Cache for padding strings to reduce allocations during rendering
+    private static readonly string[] PaddingCache = new string[GameAreaWidth + 1];
+
+    static ConsoleUI()
+    {
+        // Pre-allocate common padding strings
+        for (int i = 0; i <= GameAreaWidth; i++)
+        {
+            PaddingCache[i] = new string(' ', i);
+        }
+    }
     
     /// <summary>
     /// Az AI által legutóbb javasolt lépés iránya (F gombhoz).
@@ -213,7 +225,7 @@ public class ConsoleUI
             Console.Write($"{_lastAISuggestedMove!.Arrow} Kövesd az AI-t");
             Console.ForegroundColor = ConsoleColor.Yellow;
             Console.Write("]");
-            Console.Write(new string(' ', 23));
+            Console.Write(PaddingCache[23]);
             Console.ResetColor();
             Console.WriteLine("║");
         }
@@ -270,7 +282,7 @@ public class ConsoleUI
     {
         // A játéktér szélessége karakterekben (minden csempe 2 karakter széles)
         int gameWidth = _game.Width * 2;
-        
+
         // Középre igazítás - biztosítjuk, hogy a padding nem negatív
         int padding = Math.Max(0, (GameAreaWidth - gameWidth) / 2);
         int rightPadding = Math.Max(0, GameAreaWidth - padding - gameWidth);
@@ -278,7 +290,7 @@ public class ConsoleUI
         for (int row = 0; row < _game.Height; row++)
         {
             Console.Write("║  ");
-            Console.Write(new string(' ', padding));
+            Console.Write(PaddingCache[padding]);
 
             for (int col = 0; col < _game.Width; col++)
             {
@@ -286,7 +298,7 @@ public class ConsoleUI
                 RenderTile(tile);
             }
 
-            Console.Write(new string(' ', rightPadding));
+            Console.Write(PaddingCache[rightPadding]);
             Console.WriteLine("║");
         }
 
@@ -294,7 +306,7 @@ public class ConsoleUI
         for (int i = _game.Height; i < MinGameAreaHeight; i++)
         {
             Console.Write("║  ");
-            Console.Write(new string(' ', GameAreaWidth));
+            Console.Write(PaddingCache[GameAreaWidth]);
             Console.WriteLine("║");
         }
     }

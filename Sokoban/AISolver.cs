@@ -98,6 +98,10 @@ public class AISolver
 
     public int LastIterationCount { get; private set; } = 0;
 
+    // Cache for goal positions to avoid repeated scanning
+    private List<(int Row, int Col)>? _cachedGoals;
+    private SokobanGame? _lastGameInstance;
+
     /// <summary>
     /// Alapértelmezett konstruktor 100000-es MaxIterations értékkel.
     /// </summary>
@@ -128,6 +132,9 @@ public class AISolver
     /// külön kezeli a lépések szűrésénél. Ez biztosítja, hogy a heurisztika
     /// admissible (megengedett) maradjon és ne zárjon ki túl sok állapotot.
     ///
+    /// OPTIMALIZÁCIÓ: A célhelyek pozíciói cachelve vannak, mivel ezek nem
+    /// változnak a játék során. Csak a ládák pozícióit kell újra kiszámolni.
+    ///
     /// A szakdolgozatban hivatkozható: heurisztika tervezés A* kereséshez,
     /// admissible heurisztika tulajdonságok.
     /// </summary>
@@ -139,19 +146,34 @@ public class AISolver
         if (game == null)
             throw new ArgumentNullException(nameof(game));
 
-        int totalDistance = 0;
-        var goals = new List<(int Row, int Col)>();
-        var boxes = new List<(int Row, int Col)>();
+        // Cache goal positions since they never change during solving
+        if (_cachedGoals == null || _lastGameInstance != game)
+        {
+            _cachedGoals = new List<(int Row, int Col)>();
+            _lastGameInstance = game;
 
+            for (int row = 0; row < game.Height; row++)
+            {
+                for (int col = 0; col < game.Width; col++)
+                {
+                    char tile = game.GetTile(row, col);
+                    if (tile == Tiles.Goal || tile == Tiles.PlayerOnGoal || tile == Tiles.BoxOnGoal)
+                    {
+                        _cachedGoals.Add((row, col));
+                    }
+                }
+            }
+        }
+
+        int totalDistance = 0;
+        var boxes = new List<(int Row, int Col)>(_cachedGoals.Count);
+
+        // Only scan for boxes (goals are cached)
         for (int row = 0; row < game.Height; row++)
         {
             for (int col = 0; col < game.Width; col++)
             {
                 char tile = game.GetTile(row, col);
-                if (tile == Tiles.Goal || tile == Tiles.PlayerOnGoal || tile == Tiles.BoxOnGoal)
-                {
-                    goals.Add((row, col));
-                }
                 if (tile == Tiles.Box || tile == Tiles.BoxOnGoal)
                 {
                     boxes.Add((row, col));
@@ -162,7 +184,7 @@ public class AISolver
         foreach (var box in boxes)
         {
             int minDist = int.MaxValue;
-            foreach (var goal in goals)
+            foreach (var goal in _cachedGoals)
             {
                 int dist = Math.Abs(box.Row - goal.Row) + Math.Abs(box.Col - goal.Col);
                 minDist = Math.Min(minDist, dist);
