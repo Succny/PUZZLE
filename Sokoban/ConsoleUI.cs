@@ -271,7 +271,7 @@ public class ConsoleUI
         Console.WriteLine("║  F: Kövesd AI-t     │  1-5: Pálya választás  │  Q: Kilépés   ║");
         Console.WriteLine("║  U/Backspace: Visszalépés  │  R: Újraindítás                 ║");
         Console.ForegroundColor = ConsoleColor.Yellow;
-        Console.Write("╚═══════════════════════════════════════════════════════════════╝");
+        Console.WriteLine("╚═══════════════════════════════════════════════════════════════╝");
         Console.ResetColor();
     }
 
