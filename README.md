@@ -17,7 +17,7 @@ A Sokoban egy klasszikus logikai játék, ahol a játékosnak ládákat kell a c
 - 🎮 **Klasszikus Sokoban**: Told a ládákat a célhelyekre
 - 🤖 **AI Asszisztens**: Intelligens hint-rendszer segít, ha elakadsz
 - ⚠️ **Deadlock Detektálás**: Figyelmeztet, ha zsákutcába kerültél (sarok és fal-vonal deadlock)
-- ↩️ **Undo Funkció**: Bármikor visszaléphetsz (max ~1000 lépés)
+- ↩️ **Undo Funkció**: Bármikor visszaléphetsz (max. 1000 lépés)
 - 📊 **Állapot Elemzés**: A játék folyamatosan elemzi a helyzetet
 - 🖥️ **Konzol Felület**: Tiszta, áttekinthető konzol UI
 
@@ -102,6 +102,7 @@ dotnet publish -c Release -r win-x64 --self-contained
 | ↑ ↓ ← → / WASD | Mozgás |
 | H | Segítség - következő lépés megmutatása |
 | N | Állapot elemzés - részletes információ |
+| F | AI javasolt lépésének végrehajtása (Follow AI) |
 | U / Backspace | Visszalépés (Undo) |
 | R | Pálya újraindítása |
 | 1-5 | Pálya választás |
@@ -112,6 +113,7 @@ dotnet publish -c Release -r win-x64 --self-contained
 ### Hint Rendszer
 - **H - Segítség**: Megmutatja az optimális következő lépést, vagy jelzi ha a pálya teljesítve van
 - **N - Állapot Elemzés**: Részletes információ a játék állapotáról, megoldhatóság ellenőrzése
+- **F - Follow AI**: Az utolsó javasolt AI lépés végrehajtása
 
 ### AI Képességek
 - **A* Megoldó Algoritmus**: Megtalálja az optimális megoldást
@@ -123,7 +125,7 @@ dotnet publish -c Release -r win-x64 --self-contained
 
 ### Hint Statisztikák
 
-A HintSystem osztály számolja, hányszor kért a játékos segítséget (`HintsUsed` property). Ez az adat felhasználható a szakdolgozatban a játékos–AI együttműködés elemzéséhez:
+A HintSystem osztály számolja, hányszor kért a játékos segítséget (`HintsUsed` property), a UI pedig követi az AI által végrehajtott lépések számát (`AI` statisztika). Ezek az adatok felhasználhatók a szakdolgozatban a játékos–AI együttműködés elemzéséhez:
 - Milyen gyakran támaszkodik a játékos az AI-ra?
 - Mely pályákon kér több segítséget?
 - Hogyan változik a hint-használat a gyakorlással?
