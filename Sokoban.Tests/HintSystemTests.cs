@@ -16,6 +16,15 @@ public class HintSystemTests
     private static AISolver CreateSolver() => new AISolver();
 
     /// <summary>
+    /// Teszt: HintSystem konstruktor null solver-rel kivételt dob.
+    /// </summary>
+    [Fact]
+    public void Constructor_WithNullSolver_ThrowsArgumentNullException()
+    {
+        Assert.Throws<ArgumentNullException>(() => new HintSystem(null!));
+    }
+
+    /// <summary>
     /// Egyszerű megoldható pálya
     /// </summary>
     private static Level CreateSolvableLevel() => new Level(
