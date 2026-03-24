@@ -30,21 +30,25 @@ public class HintSystem
     /// </summary>
     private const int StuckMoveThreshold = 7;
 
-    private static readonly Random _random = new();
-
+    /// <summary>
+    /// Hint rendszer konstruktor.
+    /// </summary>
+    /// <param name="solver">Az AI solver példány</param>
+    /// <exception cref="ArgumentNullException">Ha solver null</exception>
     public HintSystem(AISolver solver)
     {
-        _solver = solver;
+        _solver = solver ?? throw new ArgumentNullException(nameof(solver));
         _hintCount = 0;
         _movesSinceLastPush = 0;
     }
 
     /// <summary>
     /// Véletlenszerű üzenet egy tömbből.
+    /// Használja a Random.Shared-et a thread-safe véletlenszám generáláshoz.
     /// </summary>
     private static string GetRandomMessage(string[] messages)
     {
-        return messages[_random.Next(messages.Length)];
+        return messages[Random.Shared.Next(messages.Length)];
     }
 
     /// <summary>
@@ -210,8 +214,8 @@ public class HintSystem
         if (result.Pushed)
         {
             _movesSinceLastPush = 0;
-            // Véletlenszerű bátorítás láda tolás után
-            if (_random.Next(100) > 70)
+            // Véletlenszerű bátorítás láda tolás után (30% esély)
+            if (Random.Shared.Next(100) > 70)
             {
                 return GetRandomMessage(Messages.Encouragements);
             }

@@ -327,8 +327,10 @@ public class SokobanGame
     }
 
     /// <summary>
-    /// Visszalépés (undo)
+    /// Visszalépés (undo).
+    /// Visszaállítja az előző mentett állapotot, ha van elérhető történet.
     /// </summary>
+    /// <returns>True, ha sikerült visszalépni; False, ha nincs elérhető történet</returns>
     public bool Undo()
     {
         if (_history.Count == 0)
@@ -336,6 +338,13 @@ public class SokobanGame
 
         var state = _history.Last!.Value;
         _history.RemoveLast();
+
+        if (state.Map.Length != _map.Length)
+        {
+            // Biztonsági ellenőrzés: ha a térkép mérete nem egyezik, ne állítsuk vissza
+            return false;
+        }
+
         Array.Copy(state.Map, _map, _map.Length);
         _playerRow = state.PlayerRow;
         _playerCol = state.PlayerCol;

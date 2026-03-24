@@ -226,19 +226,49 @@ public class AISolverTests
     {
         var solver = new AISolver();
         var game = new SokobanGame(CreateSolvableLevel());
-        
+
         int maxSteps = 100; // Végtelen ciklus elkerülése
         int steps = 0;
-        
+
         while (!game.IsSolved() && steps < maxSteps)
         {
             var nextMove = solver.GetNextMove(game);
             if (nextMove == null) break;
-            
+
             game.Move(nextMove.Value.Move!.Direction.DRow, nextMove.Value.Move!.Direction.DCol);
             steps++;
         }
-        
+
         Assert.True(game.IsSolved());
+    }
+
+    /// <summary>
+    /// Teszt: AISolver konstruktor nem pozitív MaxIterations értékkel kivételt dob.
+    /// </summary>
+    [Fact]
+    public void Constructor_WithNonPositiveMaxIterations_ThrowsArgumentException()
+    {
+        Assert.Throws<ArgumentException>(() => new AISolver(0));
+        Assert.Throws<ArgumentException>(() => new AISolver(-1));
+    }
+
+    /// <summary>
+    /// Teszt: Solve null játékállapottal kivételt dob.
+    /// </summary>
+    [Fact]
+    public void Solve_WithNullGame_ThrowsArgumentNullException()
+    {
+        var solver = new AISolver();
+        Assert.Throws<ArgumentNullException>(() => solver.Solve(null!));
+    }
+
+    /// <summary>
+    /// Teszt: CalculateHeuristic null játékállapottal kivételt dob.
+    /// </summary>
+    [Fact]
+    public void CalculateHeuristic_WithNullGame_ThrowsArgumentNullException()
+    {
+        var solver = new AISolver();
+        Assert.Throws<ArgumentNullException>(() => solver.CalculateHeuristic(null!));
     }
 }

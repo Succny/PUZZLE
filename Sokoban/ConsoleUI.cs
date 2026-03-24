@@ -486,6 +486,7 @@ public class ConsoleUI
             _lastAISuggestedMove = null;
             return;
         }
+
         var nextMove = _solver.GetNextMove(_game);
         _lastAISuggestedMove = nextMove?.Move?.Direction;
     }

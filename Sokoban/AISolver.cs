@@ -109,28 +109,36 @@ public class AISolver
     /// Konstruktor egyedi MaxIterations értékkel.
     /// </summary>
     /// <param name="maxIterations">Maximális iterációszám (alapértelmezett: 100000)</param>
+    /// <exception cref="ArgumentException">Ha maxIterations nem pozitív</exception>
     public AISolver(int maxIterations)
     {
+        if (maxIterations <= 0)
+            throw new ArgumentException("A maximális iterációszámnak pozitívnak kell lennie.", nameof(maxIterations));
+
         MaxIterations = maxIterations;
     }
 
     /// <summary>
     /// Manhattan-távolság heurisztika számítása.
-    /// 
+    ///
     /// Az algoritmus minden nem célhelyen lévő ládához kiszámítja a legközelebbi
     /// cél Manhattan-távolságát, és ezek összegét adja vissza.
-    /// 
+    ///
     /// FONTOS: A heurisztika NEM ellenőriz deadlockot - ezt a Solve metódus
     /// külön kezeli a lépések szűrésénél. Ez biztosítja, hogy a heurisztika
     /// admissible (megengedett) maradjon és ne zárjon ki túl sok állapotot.
-    /// 
+    ///
     /// A szakdolgozatban hivatkozható: heurisztika tervezés A* kereséshez,
     /// admissible heurisztika tulajdonságok.
     /// </summary>
     /// <param name="game">Az aktuális játékállapot</param>
     /// <returns>A heurisztika értéke (alacsonyabb = jobb)</returns>
+    /// <exception cref="ArgumentNullException">Ha game null</exception>
     public int CalculateHeuristic(SokobanGame game)
     {
+        if (game == null)
+            throw new ArgumentNullException(nameof(game));
+
         int totalDistance = 0;
         var goals = new List<(int Row, int Col)>();
         var boxes = new List<(int Row, int Col)>();
@@ -193,22 +201,26 @@ public class AISolver
 
     /// <summary>
     /// Megoldás keresése A* algoritmussal.
-    /// 
+    ///
     /// Az algoritmus prioritásos sorban tárolja a vizsgálandó állapotokat,
     /// ahol a prioritás = eddigi lépések száma + heurisztika (f = g + h).
-    /// 
+    ///
     /// Optimalizációk:
     /// - Visited halmaz a már vizsgált állapotok kiszűrésére
     /// - Deadlock állapotok korai szűrése
     /// - Konfigurálható iteráció limit
-    /// 
+    ///
     /// A szakdolgozatban hivatkozható: A* algoritmus implementáció,
     /// állapottér keresés, prioritásos sor alkalmazása.
     /// </summary>
     /// <param name="game">A kiinduló játékállapot</param>
     /// <returns>A megoldás eredménye (siker/kudarc, lépések, iterációk)</returns>
+    /// <exception cref="ArgumentNullException">Ha game null</exception>
     public SolutionResult Solve(SokobanGame game)
     {
+        if (game == null)
+            throw new ArgumentNullException(nameof(game));
+
         LastIterationCount = 0;
 
         if (game.IsSolved())
