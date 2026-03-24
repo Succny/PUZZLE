@@ -130,6 +130,28 @@ public class AISolverTests
         
         Assert.Equal(0, heuristic);
     }
+
+    /// <summary>
+    /// Teszt: heurisztika számításnál a célhelyen álló láda is célként számít.
+    /// Ez biztosítja, hogy részben teljesített állapotokban se vesszenek el a célok.
+    /// </summary>
+    [Fact]
+    public void CalculateHeuristic_BoxOnGoalStillCountsAsGoal()
+    {
+        var solver = new AISolver();
+        var level = new Level("Mixed goals", "Test", new string[]
+        {
+            "#####",
+            "#@* #",
+            "# $ #",
+            "#####"
+        });
+        var game = new SokobanGame(level);
+
+        var heuristic = solver.CalculateHeuristic(game);
+
+        Assert.Equal(1, heuristic);
+    }
     
     /// <summary>
     /// Teszt: deadlock felismerése.

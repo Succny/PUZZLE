@@ -140,7 +140,7 @@ public class AISolver
             for (int col = 0; col < game.Width; col++)
             {
                 char tile = game.GetTile(row, col);
-                if (tile == Tiles.Goal || tile == Tiles.PlayerOnGoal)
+                if (tile == Tiles.Goal || tile == Tiles.PlayerOnGoal || tile == Tiles.BoxOnGoal)
                 {
                     goals.Add((row, col));
                 }
