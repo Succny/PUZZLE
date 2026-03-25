@@ -52,7 +52,7 @@ public class SolutionResult
     /// <summary>Sikerült-e megoldást találni</summary>
     public bool Success { get; set; }
     /// <summary>A megoldáshoz szükséges lépések listája</summary>
-    public List<SolverMove> Moves { get; set; } = new();
+    public List<SolverMove> Moves { get; set; } = [];
     /// <summary>A keresés során végrehajtott iterációk száma</summary>
     public int Iterations { get; set; }
     /// <summary>Sikertelen keresés esetén az ok (pl. "timeout", "exhausted")</summary>
@@ -156,7 +156,7 @@ public class AISolver
         }
 
         int totalDistance = 0;
-        var boxes = new List<(int Row, int Col)>(_cachedGoals.Count);
+        List<(int Row, int Col)> boxes = [];
 
         // Only scan for boxes (goals are cached)
         for (int row = 0; row < game.Height; row++)
@@ -239,7 +239,7 @@ public class AISolver
             return new SolutionResult { Success = true };
         }
 
-        var visited = new HashSet<string>();
+        HashSet<string> visited = [];
         var queue = new PriorityQueue<(SokobanGame Game, List<SolverMove> Moves), int>();
 
         var initialGame = game.Clone();
