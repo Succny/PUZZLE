@@ -161,10 +161,10 @@ public class AISolverTests
     {
         var solver = new AISolver();
         var game = new SokobanGame(CreateDeadlockLevel());
-        
+
         // A láda (1,1) pozíción van, ami sarok
-        var isDeadlock = solver.IsDeadlock(game, 1, 1);
-        
+        var isDeadlock = AISolver.IsDeadlock(game, 1, 1);
+
         Assert.True(isDeadlock);
     }
     

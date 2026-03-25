@@ -10,27 +10,18 @@ namespace Sokoban;
 /// [AI Layer]
 /// Lépés irány reprezentáció az AI algoritmushoz.
 /// </summary>
-public class MoveDirection
+public class MoveDirection(int dRow, int dCol, string name, string arrow, string directionalSuffix)
 {
     /// <summary>Sor irányú elmozdulás (-1: fel, 1: le, 0: nincs)</summary>
-    public int DRow { get; }
+    public int DRow { get; } = dRow;
     /// <summary>Oszlop irányú elmozdulás (-1: bal, 1: jobb, 0: nincs)</summary>
-    public int DCol { get; }
+    public int DCol { get; } = dCol;
     /// <summary>Magyar megnevezés</summary>
-    public string Name { get; }
+    public string Name { get; } = name;
     /// <summary>Nyíl karakter vizuális megjelenítéshez</summary>
-    public string Arrow { get; }
+    public string Arrow { get; } = arrow;
     /// <summary>Magyar irányhatározó rag (-ra/-fele)</summary>
-    public string DirectionalSuffix { get; }
-
-    public MoveDirection(int dRow, int dCol, string name, string arrow, string directionalSuffix)
-    {
-        DRow = dRow;
-        DCol = dCol;
-        Name = name;
-        Arrow = arrow;
-        DirectionalSuffix = directionalSuffix;
-    }
+    public string DirectionalSuffix { get; } = directionalSuffix;
 
     public static readonly MoveDirection Up = new(-1, 0, "fel", "↑", "fele");
     public static readonly MoveDirection Down = new(1, 0, "le", "↓", "fele");
@@ -143,13 +134,12 @@ public class AISolver
     /// <exception cref="ArgumentNullException">Ha game null</exception>
     public int CalculateHeuristic(SokobanGame game)
     {
-        if (game == null)
-            throw new ArgumentNullException(nameof(game));
+        ArgumentNullException.ThrowIfNull(game);
 
         // Cache goal positions since they never change during solving
         if (_cachedGoals == null || _lastGameInstance != game)
         {
-            _cachedGoals = new List<(int Row, int Col)>();
+            _cachedGoals = [];
             _lastGameInstance = game;
 
             for (int row = 0; row < game.Height; row++)
@@ -215,7 +205,7 @@ public class AISolver
     /// <param name="row">A láda sor pozíciója</param>
     /// <param name="col">A láda oszlop pozíciója</param>
     /// <returns>True, ha a láda biztosan deadlock állapotban van</returns>
-    public bool IsDeadlock(SokobanGame game, int row, int col)
+    public static bool IsDeadlock(SokobanGame game, int row, int col)
     {
         // Használjuk a SokobanGame konzervatív deadlock ellenőrzését
         return game.CheckDeadlock(row, col);
@@ -240,8 +230,7 @@ public class AISolver
     /// <exception cref="ArgumentNullException">Ha game null</exception>
     public SolutionResult Solve(SokobanGame game)
     {
-        if (game == null)
-            throw new ArgumentNullException(nameof(game));
+        ArgumentNullException.ThrowIfNull(game);
 
         LastIterationCount = 0;
 
@@ -254,7 +243,7 @@ public class AISolver
         var queue = new PriorityQueue<(SokobanGame Game, List<SolverMove> Moves), int>();
 
         var initialGame = game.Clone();
-        queue.Enqueue((initialGame, new List<SolverMove>()), CalculateHeuristic(initialGame));
+        queue.Enqueue((initialGame, (List<SolverMove>)[]), CalculateHeuristic(initialGame));
         visited.Add(initialGame.GetStateKey());
 
         int iterations = 0;
@@ -290,10 +279,7 @@ public class AISolver
 
                         visited.Add(stateKey);
 
-                        var newMoves = new List<SolverMove>(currentMoves)
-                        {
-                            new SolverMove { Direction = dir, Pushed = result.Pushed }
-                        };
+                        List<SolverMove> newMoves = [..currentMoves, new SolverMove { Direction = dir, Pushed = result.Pushed }];
 
                         if (newGame.IsSolved())
                         {

@@ -37,7 +37,8 @@ public class HintSystem
     /// <exception cref="ArgumentNullException">Ha solver null</exception>
     public HintSystem(AISolver solver)
     {
-        _solver = solver ?? throw new ArgumentNullException(nameof(solver));
+        ArgumentNullException.ThrowIfNull(solver);
+        _solver = solver;
         _hintCount = 0;
         _movesSinceLastPush = 0;
     }
@@ -136,14 +137,14 @@ public class HintSystem
         int totalBoxes = game.BoxCount;
         int progress = totalBoxes > 0 ? (boxesOnGoal * 100) / totalBoxes : 0;
 
-        var lines = new List<string>
-        {
+        List<string> lines =
+        [
             "📊 Állapot elemzés:",
             $"• {boxesOnGoal}/{totalBoxes} láda a célhelyen ({progress}%)",
             $"• Eddigi lépések: {game.Moves}",
             $"• Eddigi tolások: {game.Pushes}",
             ""
-        };
+        ];
 
         // Ellenőrizzük, hogy a pálya már megoldott-e
         if (game.IsSolved())
