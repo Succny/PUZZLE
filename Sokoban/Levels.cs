@@ -34,21 +34,14 @@ public static class Tiles
 /// Pálya definíció osztály.
 /// Egy pályát ír le: név, nehézségi szint, és a térkép.
 /// </summary>
-public class Level
+public class Level(string name, string difficulty, string[] map)
 {
     /// <summary>A pálya megnevezése</summary>
-    public string Name { get; }
+    public string Name { get; } = name;
     /// <summary>Nehézségi szint (pl. "Könnyű", "Közepes", "Nehéz")</summary>
-    public string Difficulty { get; }
+    public string Difficulty { get; } = difficulty;
     /// <summary>A pálya karakteres reprezentációja (soronként)</summary>
-    public string[] Map { get; }
-
-    public Level(string name, string difficulty, string[] map)
-    {
-        Name = name;
-        Difficulty = difficulty;
-        Map = map;
-    }
+    public string[] Map { get; } = map;
 }
 
 /// <summary>
@@ -58,21 +51,21 @@ public class Level
 /// </summary>
 public static class Levels
 {
-    public static readonly Level[] AllLevels = new Level[]
-    {
+    public static readonly Level[] AllLevels =
+    [
         // Level 1 - Tutorial (nagyon könnyű)
-        new Level("Első lépések", "Könnyű", new string[]
-        {
+        new Level("Első lépések", "Könnyű",
+        [
             "#######",
             "#     #",
             "# .$@ #",
             "#     #",
             "#######"
-        }),
+        ]),
 
         // Level 2 - Két láda
-        new Level("Kettős kihívás", "Könnyű", new string[]
-        {
+        new Level("Kettős kihívás", "Könnyű",
+        [
             "########",
             "#      #",
             "# $  $ #",
@@ -80,11 +73,11 @@ public static class Levels
             "# .  . #",
             "#  @   #",
             "########"
-        }),
+        ]),
 
         // Level 3 - Közepes
-        new Level("Szűk folyosó", "Közepes", new string[]
-        {
+        new Level("Szűk folyosó", "Közepes",
+        [
             "  #####",
             "###   #",
             "# $ # #",
@@ -92,11 +85,11 @@ public static class Levels
             "# @ $ #",
             "###.  #",
             "  #####"
-        }),
+        ]),
 
         // Level 4 - Nehezebb
-        new Level("Labirintus", "Közepes", new string[]
-        {
+        new Level("Labirintus", "Közepes",
+        [
             "########",
             "#  #   #",
             "# $$ @ #",
@@ -104,11 +97,11 @@ public static class Levels
             "#  # $ #",
             "#  . ###",
             "########"
-        }),
+        ]),
 
         // Level 5 - Kihívás (klasszikus megoldható pálya)
-        new Level("Mester próba", "Nehéz", new string[]
-        {
+        new Level("Mester próba", "Nehéz",
+        [
             "  #####",
             "###   #",
             "#.@$  #",
@@ -118,6 +111,6 @@ public static class Levels
             "#$  $$.#",
             "#   .  #",
             "########"
-        })
-    };
+        ])
+    ];
 }
