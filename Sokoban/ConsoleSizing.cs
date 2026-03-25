@@ -25,12 +25,13 @@ public static class ConsoleSizing
 {
     /// <summary>
     /// Fix méretű konzol beállítása a megadott méretek alapján.
-    /// 
+    ///
     /// A metódus biztosítja, hogy:
     /// 1. A buffer méret pontosan megegyezik az ablak mérettel (nincs scrollbar)
     /// 2. A konzol ablak mérete megfelelő a játéktér megjelenítéséhez
     /// 3. A kurzor el van rejtve
-    /// 
+    /// 4. Ha a képernyő túl kicsi, az elérhető maximális méretet használja
+    ///
     /// FONTOS: Előbb a buffer méretet kell beállítani, aztán az ablak méretet,
     /// különben kivétel keletkezhet.
     /// </summary>
@@ -57,7 +58,31 @@ public static class ConsoleSizing
                 return ApplyWindowsFixedSize(width, height);
             }
 
-            // Linux/macOS esetén általában nem kell méretet állítani
+            // Linux/macOS esetén általában nem kell méretet állítani,
+            // de ellenőrizzük, hogy elég nagy-e a terminal
+            try
+            {
+                if (Console.WindowWidth < width || Console.WindowHeight < height)
+                {
+                    Console.Clear();
+                    Console.ForegroundColor = ConsoleColor.Yellow;
+                    Console.WriteLine("⚠️  FIGYELMEZTETÉS: A terminál ablak túl kicsi!");
+                    Console.WriteLine($"   Minimális méret: {width} × {height}");
+                    Console.WriteLine($"   Jelenlegi méret: {Console.WindowWidth} × {Console.WindowHeight}");
+                    Console.WriteLine();
+                    Console.WriteLine("   Kérlek, növeld a terminál ablak méretét,");
+                    Console.WriteLine("   majd indítsd újra a játékot.");
+                    Console.ResetColor();
+                    Console.WriteLine();
+                    Console.WriteLine("Nyomj egy billentyűt a folytatáshoz (a megjelenítés lehet hibás)...");
+                    Console.ReadKey(true);
+                }
+            }
+            catch
+            {
+                // Néhány terminal nem támogatja a WindowWidth/Height lekérdezést
+            }
+
             return true;
         }
         catch
@@ -146,17 +171,24 @@ public static class ConsoleSizing
     /// <summary>
     /// Újrainicializálja a kurzor pozícióját és elrejti azt.
     /// Hívd meg minden renderelés előtt a stabil megjelenítéshez.
+    ///
+    /// A módszer a kurzort a (0,0) pozícióba helyezi vissza anélkül, hogy
+    /// törölné a képernyőt, így kerülve el a villogást és szakadozást.
     /// </summary>
     public static void ResetCursorForRender()
     {
         try
         {
             Console.CursorVisible = false;
+            // A kurzor visszaállítása a bal felső sarokba
+            // Ez lehetővé teszi a teljes képernyő újraírását anélkül, hogy
+            // törölnénk vagy scrolloznánk, így nincs villogás
             Console.SetCursorPosition(0, 0);
         }
         catch
         {
             // Ignoráljuk az esetleges hibákat
+            // Bizonyos terminálok nem támogatják a kurzor pozicionálást
         }
     }
 }

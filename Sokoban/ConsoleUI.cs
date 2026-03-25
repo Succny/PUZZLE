@@ -92,11 +92,16 @@ public class ConsoleUI
     /// Játék futtatása - fő ciklus.
     /// Renderelés csak az indulásnál és minden billentyűleütés után történik,
     /// így nem árasztja el a terminált felesleges kiírásokkal.
+    ///
+    /// A renderelés optimalizálva van:
+    /// - Első render után a képernyő tiszta
+    /// - Minden további render csak felülírja a meglévő tartalmat (nincs villogás)
+    /// - A buffer mérete fix, így nincs scrollozás
     /// </summary>
     public void Run()
     {
         Console.CursorVisible = false;
-        Console.Clear();
+        Console.Clear(); // Egyszeri képernyő törlés az induláskor
 
         Render(); // Kezdeti megjelenítés
 
@@ -115,6 +120,8 @@ public class ConsoleUI
     /// <summary>
     /// Képernyő renderelése - összeállítja a teljes UI-t.
     /// A metódus kisebb, jól elkülöníthető részekre van bontva a könnyebb olvashatóság érdekében.
+    /// Az első render után a teljes képernyő törölve van, ezt követően csak a kurzort
+    /// pozicionáljuk vissza (0,0)-ra, hogy ne legyen villogás/szakadozás.
     /// </summary>
     private void Render()
     {
@@ -129,6 +136,9 @@ public class ConsoleUI
         RenderAIPanel();
         RenderMessagePanel();
         RenderControls();
+
+        // Flush a buffer tartalmát a jobb megjelenítés érdekében
+        Console.Out.Flush();
     }
 
     /// <summary>
@@ -553,6 +563,7 @@ public class ConsoleUI
                 _lastAISuggestedMove = null;
                 _startTime = DateTime.Now;
                 _lastMessage = "🔄 Pálya újraindítva!";
+                Console.Clear(); // Tiszta képernyő az újraindításkor
                 break;
 
             // Pálya választás
@@ -646,13 +657,16 @@ public class ConsoleUI
         {
             _currentLevelIndex = index;
             var level = Levels.AllLevels[index];
-            
+
             _game.LoadLevel(level);
             _hintSystem.Reset();
             _aiAssistedMoves = 0;
             _lastAISuggestedMove = null;
             _startTime = DateTime.Now;
             _lastMessage = _hintSystem.GetWelcomeMessage(level, index + 1);
+
+            // Új pálya betöltésekor tisztítsuk a képernyőt a tiszta átmenetért
+            Console.Clear();
         }
     }
 
